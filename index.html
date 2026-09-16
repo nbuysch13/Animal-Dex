@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#DED9C8">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Feldbuch">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Feldbuch — Artenverzeichnis</title>
+<style>
+:root{
+  --paper:#DED9C8; --paper2:#F1EDE2; --paper3:#FAF7EE;
+  --ink:#1B2E24; --ink-soft:#63736A; --line:#C6BEAB;
+  --stamp:#2E6E5B; --stamp-red:#9A4A2C; --stamp-teal:#2A5C6E; --stamp-blue:#4A5C2E;
+  --gold:#94762A;
+  --display: Copperplate, "Copperplate Gothic Light", "Palatino Linotype", Palatino, "Book Antiqua", serif;
+  --body: "Avenir Next", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--body);color:var(--ink);background-color:var(--paper);
+  background-image:
+    repeating-radial-gradient(circle at 16% 10%, transparent 0 17px, rgba(46,110,91,.07) 17px 18px, transparent 18px 35px),
+    repeating-radial-gradient(circle at 86% 64%, transparent 0 21px, rgba(74,92,46,.05) 21px 22px, transparent 22px 43px),
+    repeating-linear-gradient(76deg, rgba(27,46,36,.045) 0 .5px, transparent .5px 7px);
+  background-attachment:fixed;-webkit-text-size-adjust:100%;padding:12px 12px 60px;line-height:1.45}
+.wrap{max-width:940px;margin:0 auto}
+button{font-family:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
+
+.pass{background:var(--paper2);border:1px solid var(--line);border-radius:3px;
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 6px 18px -12px rgba(27,46,36,.6);overflow:hidden;position:relative}
+.pass-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px 6px}
+.pass-title{font-family:var(--display);letter-spacing:.19em;font-size:14px;text-transform:uppercase}
+.pass-sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink-soft);text-transform:uppercase;margin-top:3px}
+.crest{font-size:22px;opacity:.8}
+.pass-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:9px;padding:2px 14px 12px;align-items:end}
+.fld .lb{font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;color:var(--ink-soft);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fld .vl{font-family:var(--display);font-size:19px;letter-spacing:.04em;line-height:1.15}
+.fld .vl small{font-size:11px;color:var(--ink-soft)}
+#nameIn{width:100%;background:transparent;border:0;border-bottom:1px dashed var(--line);
+  font-family:var(--display);font-size:15px;letter-spacing:.1em;text-transform:uppercase;padding:1px 0}
+#nameIn:focus{outline:none;border-bottom-color:var(--stamp)}
+.xpbar{height:4px;background:rgba(27,46,36,.1)}
+.xpbar i{display:block;height:100%;background:var(--stamp);transition:width .5s ease}
+.mrz{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;line-height:1.7;background:rgba(255,255,255,.6);
+  border-top:1px dashed var(--line);padding:8px 14px;white-space:nowrap;overflow-x:auto}
+
+.tabs{display:flex;gap:2px;margin:14px 0 10px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.tabs button{background:transparent;border:0;padding:9px 11px;font-family:var(--display);font-size:11.5px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--stamp)}
+
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
+#search{flex:1 1 150px;min-width:130px;background:var(--paper3);border:1px solid var(--line);border-radius:2px;padding:8px 10px;font-size:14px}
+#search:focus{outline:2px solid var(--stamp);outline-offset:1px}
+.chip{background:transparent;border:1px solid var(--line);border-radius:20px;padding:5px 10px;font-size:11.5px;color:var(--ink-soft)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper2)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.grid.liste{grid-template-columns:1fr;gap:5px}
+.card{position:relative;text-align:left;background:var(--paper3);border:1px solid var(--line);border-radius:2px;
+  padding:10px 10px 9px;min-height:92px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.card.un{background:transparent;border-style:dashed}
+.card .mot{font-size:20px;line-height:1}
+.card .nm{font-family:var(--display);font-size:13.5px;letter-spacing:.03em;margin-top:5px;padding-right:30px}
+.card .sci{font-size:10.5px;font-style:italic;color:var(--ink-soft);margin-top:2px}
+.card .meta{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--ink-soft);text-transform:uppercase;margin-top:5px}
+.card .mini{position:absolute;right:-6px;top:6px;transform:rotate(-12deg);border:1.5px solid var(--stamp);border-radius:3px;
+  color:var(--stamp);font-family:var(--mono);font-size:12px;padding:2px 6px;opacity:.9;filter:url(#inkfx)}
+.tier3 .nm{color:var(--gold)}
+.grid.liste .card{flex-direction:row;align-items:center;gap:11px;min-height:0;padding:11px 12px}
+.grid.liste .card>div:first-child{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.grid.liste .nm{font-family:var(--body);font-size:16px;letter-spacing:0;margin:0;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid.liste .sci,.grid.liste .meta{display:none}
+.grid.liste .mini{position:static;transform:rotate(-5deg)}
+@keyframes slam{0%{transform:rotate(-12deg) scale(2.6);opacity:0}60%{opacity:1}100%{transform:rotate(-12deg) scale(1);opacity:.9}}
+.stamped .mini{animation:slam .32s cubic-bezier(.2,1.5,.4,1) both}
+
+.sheet{position:fixed;inset:0;background:rgba(27,46,36,.62);z-index:40;overflow-y:auto;padding:10px}
+.page{max-width:640px;margin:0 auto 30px;background:var(--paper2);border:1px solid var(--line);border-radius:3px;position:relative;overflow:hidden}
+.page-hd{display:flex;gap:10px;align-items:flex-start;padding:14px 14px 8px;border-bottom:1px dashed var(--line);position:relative}
+.page-hd .mot{font-size:32px;line-height:1}
+.page-hd h2{font-family:var(--display);font-size:20px;letter-spacing:.05em;margin:2px 0;font-weight:400;padding-right:30px}
+.page-hd .sci{font-style:italic;font-size:13px;color:var(--ink-soft)}
+.close{position:absolute;right:8px;top:8px;background:transparent;border:0;font-size:22px;padding:4px 8px;color:var(--ink-soft)}
+.sec{padding:12px 14px;border-bottom:1px dashed var(--line)}
+.sec h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 9px;font-weight:400}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 12px}
+.facts .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.facts .v{font-size:13.5px}
+.bigbtn{width:100%;background:var(--ink);color:var(--paper2);border:0;border-radius:2px;padding:11px;
+  font-family:var(--display);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase}
+.bigbtn.on{background:transparent;color:var(--ink-soft);border:1px dashed var(--line)}
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:7px;line-height:1.4}
+.frm{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.frm .lb{font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;color:var(--ink-soft);text-transform:uppercase;display:block;margin-bottom:2px}
+.frm input,.frm textarea{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:4px 0;font-size:14px;border-radius:0}
+.frm input:focus,.frm textarea:focus{outline:none;border-bottom:1px solid var(--stamp)}
+.frm .wide{grid-column:1/-1}
+.frm textarea{resize:vertical;min-height:48px;border:1px solid var(--line);padding:6px;background:var(--paper3)}
+.modes{display:flex;flex-wrap:wrap;gap:6px}
+.modes button{background:transparent;border:1px solid var(--line);border-radius:20px;padding:6px 10px;font-size:12.5px;color:var(--ink-soft)}
+.modes button.on{border-color:var(--ink);background:var(--ink);color:var(--paper2)}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.slot{position:relative;aspect-ratio:1/1;border:1px dashed var(--line);border-radius:2px;background:var(--paper3);
+  display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:11px;overflow:hidden;padding:0}
+.slot img{width:100%;height:100%;object-fit:cover}
+.slot .rm{position:absolute;right:3px;top:3px;background:rgba(243,240,231,.9);border:1px solid var(--line);border-radius:2px;font-size:11px;padding:2px 5px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tag{border:1px solid var(--line);border-radius:20px;padding:3px 9px;font-size:11px;color:var(--ink-soft)}
+
+.ach{width:100%;text-align:left;display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);
+  border-radius:2px;background:var(--paper3);margin-bottom:7px}
+.ach.locked{border-style:dashed;background:transparent}
+.ach .ic{font-size:20px;filter:grayscale(1)}
+.ach:not(.locked) .ic{filter:none}
+.ach .t{font-family:var(--display);font-size:13.5px;letter-spacing:.05em}
+.ach .d{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.ach .pg{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-soft);margin-top:4px}
+.ach .chev{color:var(--ink-soft);font-size:18px;align-self:center;opacity:.6}
+.pips{display:flex;gap:4px;margin-top:6px}
+.pip{width:16px;height:4px;border-radius:2px;background:rgba(27,46,36,.15)}
+.pip.on{background:var(--stamp)}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:5px}
+.setitem{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--ink-soft);padding:3px 0;min-width:0}
+.setitem span:last-of-type{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setitem b{font-family:var(--mono);opacity:.5}
+.setitem.on{color:var(--ink)}
+.setitem.on b{color:var(--stamp);opacity:1}
+
+.eintrag{display:flex;gap:11px;align-items:center;background:var(--paper3);border:1px solid var(--line);
+  border-radius:2px;padding:10px 12px;margin-bottom:6px;width:100%;text-align:left}
+.eintrag .mot{font-size:20px}
+.eintrag .nm{font-size:15px}
+.eintrag .sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.eintrag .dt{font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-left:auto;text-align:right;flex:0 0 auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:14px}
+.stat{background:var(--paper3);border:1px solid var(--line);border-radius:2px;padding:9px 10px}
+.stat .n{font-family:var(--display);font-size:20px;line-height:1.1}
+.stat .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px}
+.panel{background:var(--paper3);border:1px solid var(--line);border-radius:2px;padding:12px 13px;margin-bottom:10px}
+.panel h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 9px;font-weight:400}
+.xprow{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:4px 0;border-bottom:1px dotted rgba(198,190,171,.8)}
+.xprow:last-child{border-bottom:0}
+.xprow b{font-family:var(--mono);font-size:12.5px;font-weight:400}
+.xprow.sum{border-top:1px solid var(--line);margin-top:5px;padding-top:7px;border-bottom:0}
+.flairs{display:flex;flex-wrap:wrap;gap:6px}
+.flairs button{background:transparent;border:1px solid var(--line);border-radius:20px;padding:6px 11px;font-family:var(--display);font-size:12px;color:var(--ink-soft)}
+.flairs button.on{border-color:var(--stamp);color:var(--stamp)}
+.note{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.empty{font-size:13.5px;color:var(--ink-soft);padding:16px;border:1px dashed var(--line);border-radius:2px;text-align:center}
+.rowbtns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.smallbtn{background:transparent;border:1px solid var(--line);border-radius:2px;padding:7px 11px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.danger{border-color:var(--stamp-red);color:var(--stamp-red)}
+.warn{background:#F7E9C9;border:1px solid var(--gold);padding:9px 11px;border-radius:2px;font-size:12.5px;margin-bottom:12px}
+.ordenpop{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;background:rgba(27,46,36,.45);padding:20px}
+.ordenkarte{background:var(--paper2);border:2.5px solid var(--stamp);border-radius:4px;padding:20px 24px;text-align:center;max-width:300px;
+  position:relative;animation:slamIn .38s cubic-bezier(.2,1.4,.4,1) both}
+.ordenkarte::after{content:"";position:absolute;inset:5px;border:1px solid var(--stamp);opacity:.45;border-radius:2px}
+.ordenkarte .oben{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--stamp)}
+.ordenkarte .ic{font-size:38px;margin:9px 0 6px}
+.ordenkarte .tt{font-family:var(--display);font-size:18px;letter-spacing:.05em}
+.ordenkarte .dd{font-size:12.5px;color:var(--ink-soft);margin-top:5px}
+.ordenkarte .fl{font-family:var(--mono);font-size:10px;color:var(--stamp);margin-top:9px}
+.ordenkarte .rest{font-family:var(--mono);font-size:9px;color:var(--ink-soft);margin-top:8px}
+@keyframes slamIn{0%{transform:scale(2.2) rotate(-8deg);opacity:0}55%{opacity:1}100%{transform:scale(1) rotate(-1.5deg);opacity:1}}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--paper2);
+  padding:9px 15px;border-radius:2px;font-size:13px;z-index:80;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+@media (max-width:420px){.facts{grid-template-columns:1fr}.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="inkfx"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.1" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+<div class="wrap">
+  <header class="pass">
+    <div class="pass-head">
+      <div><div class="pass-title">Feldbuch</div><div class="pass-sub">Verzeichnis beobachteter Arten</div></div>
+      <div class="crest">🔭</div>
+    </div>
+    <div class="pass-grid">
+      <div class="fld"><span class="lb">Beobachter:in</span><input id="nameIn" placeholder="DEIN NAME" autocomplete="off" spellcheck="false"><div class="sub" id="flairOut" style="font-family:var(--display);font-size:12.5px;color:var(--stamp)"></div></div>
+      <div class="fld"><span class="lb">Stufe</span><div class="vl" id="lvlOut">1</div></div>
+      <div class="fld"><span class="lb">Arten</span><div class="vl" id="cntOut">0<small>/0</small></div></div>
+    </div>
+    <div class="xpbar"><i id="xpFill" style="width:0%"></i></div>
+    <div class="mrz"><div id="mrz1"></div><div id="mrz2"></div></div>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="dex" aria-selected="true">Dex</button>
+    <button role="tab" data-tab="log" aria-selected="false">Fundliste</button>
+    <button role="tab" data-tab="ach" aria-selected="false">Orden</button>
+    <button role="tab" data-tab="prof" aria-selected="false">Profil</button>
+    <button role="tab" data-tab="data" aria-selected="false">Daten</button>
+  </nav>
+  <main>
+    <section id="tab-dex">
+      <div class="filters">
+        <input id="search" placeholder="Art suchen…" autocomplete="off">
+        <button class="chip" id="viewToggle">Liste</button>
+        <button class="chip" data-f="all" aria-pressed="true">Alle</button>
+        <button class="chip" data-f="seen" aria-pressed="false">Gesehen</button>
+        <button class="chip" data-f="open" aria-pressed="false">Offen</button>
+      </div>
+      <div class="filters" id="habFilters"></div>
+      <div class="grid" id="grid"></div>
+    </section>
+    <section id="tab-log" hidden><div class="stats" id="logStats"></div><div id="log"></div></section>
+    <section id="tab-ach" hidden>
+      <div class="filters" id="achFilters"></div>
+      <div class="filters" id="achKat"></div>
+      <div id="achList"></div>
+    </section>
+    <section id="tab-prof" hidden><div id="profBody"></div></section>
+    <section id="tab-data" hidden>
+      <div id="storeWarn"></div>
+      <p class="note">Alles bleibt lokal auf diesem Gerät. Für Backups und Gerätewechsel: exportieren.</p>
+      <div class="rowbtns">
+        <button class="smallbtn" id="expBtn">Daten exportieren</button>
+        <button class="smallbtn" id="impBtn">Daten importieren</button>
+        <button class="smallbtn danger" id="resetBtn">Alles löschen</button>
+      </div>
+      <input type="file" id="impFile" accept="application/json" hidden>
+      <div class="stats" id="dataStats"></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<div id="sheetHost"></div>
+<script>
+/* ====== ARTEN ======
+ id · n Name · s wissenschaftlich · o Ordnung · fa Familie · h Lebensräume · t Häufigkeit · m Motiv · tip Hinweis */
+const HAB=["Wald","Offenland","Gebirge","Siedlung","Süßwasser","Küste & Meer","Savanne","Regenwald","Trockengebiet","Polar & Tundra"];
+const ARTEN=[
+/* --- Europa: Säugetiere --- */
+{id:"reh",n:"Reh",s:"Capreolus capreolus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:1,m:"🦌",tip:"Dämmerung am Waldrand; weißer Spiegel am Hinterteil."},
+{id:"rothirsch",n:"Rothirsch",s:"Cervus elaphus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Gebirge"],t:2,m:"🦌",tip:"Im September an der Brunft zu hören, oft bevor man ihn sieht."},
+{id:"damhirsch",n:"Damhirsch",s:"Dama dama",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:2,m:"🦌",tip:"Schaufelgeweih und geflecktes Fell auch im Winter."},
+{id:"wildschwein",n:"Wildschwein",s:"Sus scrofa",o:"Paarhufer",fa:"Echte Schweine",h:["Wald","Offenland"],t:2,m:"🐗",tip:"Wühlstellen und Suhlen sind oft der erste Nachweis."},
+{id:"gaemse",n:"Gämse",s:"Rupicapra rupicapra",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:2,m:"🐐",tip:"Hakenförmige Hörner, oberhalb der Baumgrenze."},
+{id:"steinbock",n:"Alpensteinbock",s:"Capra ibex",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:3,m:"🐐",tip:"Im Frühsommer am Vormittag auf Graten; erstaunlich zutraulich."},
+{id:"mufflon",n:"Mufflon",s:"Ovis musimon",o:"Paarhufer",fa:"Hornträger",h:["Wald","Gebirge"],t:3,m:"🐏",tip:"Eingeführtes Wildschaf, Schneckenhörner beim Widder."},
+{id:"rotfuchs",n:"Rotfuchs",s:"Vulpes vulpes",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland","Siedlung"],t:1,m:"🦊",tip:"Auch mitten in der Stadt; nachts auf Straßen und Friedhöfen."},
+{id:"wolf",n:"Wolf",s:"Canis lupus",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland"],t:3,m:"🐺",tip:"Meist nur Trittsiegel oder Losung; Sichtung ist reines Glück."},
+{id:"dachs",n:"Dachs",s:"Meles meles",o:"Raubtiere",fa:"Marder",h:["Wald"],t:2,m:"🦡",tip:"Baue mit mehreren Röhren; abends am Ausgang warten."},
+{id:"steinmarder",n:"Steinmarder",s:"Martes foina",o:"Raubtiere",fa:"Marder",h:["Siedlung","Wald"],t:2,m:"🐾",tip:"Weißer, gegabelter Kehlfleck; oft auf Dachböden."},
+{id:"baummarder",n:"Baummarder",s:"Martes martes",o:"Raubtiere",fa:"Marder",h:["Wald"],t:3,m:"🐾",tip:"Gelblicher Kehlfleck, scheuer und waldgebundener als der Steinmarder."},
+{id:"hermelin",n:"Hermelin",s:"Mustela erminea",o:"Raubtiere",fa:"Marder",h:["Offenland","Gebirge"],t:3,m:"🐾",tip:"Schwarze Schwanzspitze, im Winter weiß."},
+{id:"fischotter",n:"Fischotter",s:"Lutra lutra",o:"Raubtiere",fa:"Marder",h:["Süßwasser"],t:3,m:"🦦",tip:"Losung auf Steinen an Brücken; Sichtung meist in der Dämmerung."},
+{id:"wildkatze",n:"Europäische Wildkatze",s:"Felis silvestris",o:"Raubtiere",fa:"Katzen",h:["Wald"],t:3,m:"🐈",tip:"Buschiger Ringelschwanz mit stumpfem Ende, verwaschene Zeichnung."},
+{id:"luchs",n:"Eurasischer Luchs",s:"Lynx lynx",o:"Raubtiere",fa:"Katzen",h:["Wald","Gebirge"],t:3,m:"🐆",tip:"Pinselohren und Stummelschwanz; meist nur an Rissen nachweisbar."},
+{id:"waschbaer",n:"Waschbär",s:"Procyon lotor",o:"Raubtiere",fa:"Kleinbären",h:["Wald","Siedlung"],t:2,m:"🦝",tip:"Eingeführt; nachts an Mülltonnen und Wasserläufen."},
+{id:"seehund",n:"Seehund",s:"Phoca vitulina",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:2,m:"🦭",tip:"Bei Niedrigwasser auf Sandbänken der Nordsee."},
+{id:"kegelrobbe",n:"Kegelrobbe",s:"Halichoerus grypus",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:3,m:"🦭",tip:"Deutlich größer als der Seehund, mit gerader Schnauzenlinie."},
+{id:"schweinswal",n:"Schweinswal",s:"Phocoena phocoena",o:"Wale",fa:"Schweinswale",h:["Küste & Meer"],t:3,m:"🐬",tip:"Kleine dreieckige Finne vor Sylt und Fehmarn, bei ruhiger See."},
+{id:"biber",n:"Europäischer Biber",s:"Castor fiber",o:"Nagetiere",fa:"Biber",h:["Süßwasser"],t:2,m:"🦫",tip:"Nagespuren und Dämme das ganze Jahr, das Tier selbst abends."},
+{id:"eichhoernchen",n:"Eichhörnchen",s:"Sciurus vulgaris",o:"Nagetiere",fa:"Hörnchen",h:["Wald","Siedlung"],t:1,m:"🐿️",tip:"Rot bis fast schwarz; Fichtenzapfen mit abgenagten Schuppen."},
+{id:"siebenschlaefer",n:"Siebenschläfer",s:"Glis glis",o:"Nagetiere",fa:"Bilche",h:["Wald","Siedlung"],t:3,m:"🐁",tip:"Nachts in Buchenwäldern und auf Dachböden, quiekende Rufe."},
+{id:"feldhase",n:"Feldhase",s:"Lepus europaeus",o:"Hasenartige",fa:"Hasen",h:["Offenland"],t:1,m:"🐇",tip:"Längere Löffel mit schwarzer Spitze, Einzelgänger im Acker."},
+{id:"wildkaninchen",n:"Wildkaninchen",s:"Oryctolagus cuniculus",o:"Hasenartige",fa:"Hasen",h:["Offenland","Siedlung"],t:1,m:"🐇",tip:"Kleiner als der Hase, in Kolonien mit Erdbauen."},
+{id:"igel",n:"Braunbrustigel",s:"Erinaceus europaeus",o:"Insektenfresser",fa:"Igel",h:["Siedlung","Wald"],t:1,m:"🦔",tip:"Nachts im Garten, schnaufend und erstaunlich laut."},
+{id:"maulwurf",n:"Maulwurf",s:"Talpa europaea",o:"Insektenfresser",fa:"Maulwürfe",h:["Offenland","Siedlung"],t:2,m:"⛏️",tip:"Fast immer nur als Hügel; das Tier sieht man kaum je."},
+{id:"zwergfledermaus",n:"Zwergfledermaus",s:"Pipistrellus pipistrellus",o:"Fledermäuse",fa:"Glattnasen",h:["Siedlung","Wald"],t:1,m:"🦇",tip:"Am Detektor bei 45 kHz; jagt um Straßenlaternen."},
+{id:"abendsegler",n:"Großer Abendsegler",s:"Nyctalus noctula",o:"Fledermäuse",fa:"Glattnasen",h:["Wald","Siedlung"],t:2,m:"🦇",tip:"Fliegt hoch und früh, oft noch bei Tageslicht; 20 kHz."},
+
+/* --- Europa: Vögel --- */
+{id:"amsel",n:"Amsel",s:"Turdus merula",o:"Sperlingsvögel",fa:"Drosseln",h:["Siedlung","Wald"],t:1,m:"🐦",tip:"Der flötende Gesang von Dachfirsten ab Februar."},
+{id:"rotkehlchen",n:"Rotkehlchen",s:"Erithacus rubecula",o:"Sperlingsvögel",fa:"Fliegenschnäpper",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Folgt dem Spaten; singt auch nachts unter Laternen."},
+{id:"kohlmeise",n:"Kohlmeise",s:"Parus major",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Zweisilbiges „zi-zi-bäh“ ab Januar, schwarzer Bauchstreif."},
+{id:"blaumeise",n:"Blaumeise",s:"Cyanistes caeruleus",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Blaue Kappe, kleiner und wendiger als die Kohlmeise."},
+{id:"zaunkoenig",n:"Zaunkönig",s:"Troglodytes troglodytes",o:"Sperlingsvögel",fa:"Zaunkönige",h:["Wald","Süßwasser"],t:1,m:"🐦",tip:"Winzig, Schwanz steil aufgestellt, absurd lauter Gesang."},
+{id:"stieglitz",n:"Stieglitz",s:"Carduelis carduelis",o:"Sperlingsvögel",fa:"Finken",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Rote Gesichtsmaske, im Winter an Distelständen."},
+{id:"star",n:"Star",s:"Sturnus vulgaris",o:"Sperlingsvögel",fa:"Stare",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Imitiert andere Vögel und Handyklingeln; Schwärme im Herbst."},
+{id:"eichelhaeher",n:"Eichelhäher",s:"Garrulus glandarius",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Wald"],t:1,m:"🪶",tip:"Blaue Flügelfedern; warnt den halben Wald vor dir."},
+{id:"elster",n:"Elster",s:"Pica pica",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Siedlung","Offenland"],t:1,m:"🪶",tip:"Schwarzweiß mit langem Schwanz, große Reisignester."},
+{id:"kolkrabe",n:"Kolkrabe",s:"Corvus corax",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge","Wald"],t:2,m:"🪶",tip:"Keilförmiger Schwanz und tiefes „krok“; deutlich größer als die Krähe."},
+{id:"alpendohle",n:"Alpendohle",s:"Pyrrhocorax graculus",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge"],t:2,m:"🪶",tip:"Gelber Schnabel, an jeder Bergstation auf die Brotzeit wartend."},
+{id:"rauchschwalbe",n:"Rauchschwalbe",s:"Hirundo rustica",o:"Sperlingsvögel",fa:"Schwalben",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Lange Schwanzspieße, brütet in Ställen."},
+{id:"buntspecht",n:"Buntspecht",s:"Dendrocopos major",o:"Spechtvögel",fa:"Spechte",h:["Wald","Siedlung"],t:1,m:"🪶",tip:"Trommeln im Frühjahr; roter Unterschwanz."},
+{id:"gruenspecht",n:"Grünspecht",s:"Picus viridis",o:"Spechtvögel",fa:"Spechte",h:["Offenland","Siedlung"],t:2,m:"🪶",tip:"Lachender Ruf; sucht Ameisen auf Wiesen und Rasen."},
+{id:"schwarzspecht",n:"Schwarzspecht",s:"Dryocopus martius",o:"Spechtvögel",fa:"Spechte",h:["Wald"],t:3,m:"🪶",tip:"Krähengroß, ganz schwarz; große rechteckige Höhlen in Buchen."},
+{id:"kuckuck",n:"Kuckuck",s:"Cuculus canorus",o:"Kuckucksvögel",fa:"Kuckucke",h:["Wald","Offenland"],t:2,m:"🐦",tip:"Ab April zu hören, kaum je zu sehen — ein Fall für „nur gehört“."},
+{id:"waldkauz",n:"Waldkauz",s:"Strix aluco",o:"Eulen",fa:"Eigentliche Eulen",h:["Wald","Siedlung"],t:2,m:"🦉",tip:"Das klassische „huu-huhuhuu“ im Winter, oft aus Parks."},
+{id:"uhu",n:"Uhu",s:"Bubo bubo",o:"Eulen",fa:"Eigentliche Eulen",h:["Gebirge","Wald"],t:3,m:"🦉",tip:"Brütet in Steinbrüchen; dumpfes „buho“ in klaren Februarnächten."},
+{id:"maeusebussard",n:"Mäusebussard",s:"Buteo buteo",o:"Greifvögel",fa:"Habichtartige",h:["Offenland","Wald"],t:1,m:"🦅",tip:"Der Vogel auf dem Autobahnpfosten; miauender Ruf."},
+{id:"rotmilan",n:"Rotmilan",s:"Milvus milvus",o:"Greifvögel",fa:"Habichtartige",h:["Offenland"],t:2,m:"🦅",tip:"Tief gegabelter Schwanz, rostrot; Deutschland ist sein Kernland."},
+{id:"seeadler",n:"Seeadler",s:"Haliaeetus albicilla",o:"Greifvögel",fa:"Habichtartige",h:["Süßwasser","Küste & Meer"],t:3,m:"🦅",tip:"Fliegende Scheunentür mit weißem Stoßschwanz."},
+{id:"bartgeier",n:"Bartgeier",s:"Gypaetus barbatus",o:"Greifvögel",fa:"Habichtartige",h:["Gebirge"],t:3,m:"🦅",tip:"Fast drei Meter Spannweite; in den Alpen wiederangesiedelt."},
+{id:"turmfalke",n:"Turmfalke",s:"Falco tinnunculus",o:"Falken",fa:"Falken",h:["Offenland","Siedlung"],t:1,m:"🦅",tip:"Rüttelt auf der Stelle über Feldrainen."},
+{id:"wanderfalke",n:"Wanderfalke",s:"Falco peregrinus",o:"Falken",fa:"Falken",h:["Gebirge","Siedlung"],t:3,m:"🦅",tip:"Brütet an Felswänden, Kirchtürmen und Kraftwerken."},
+{id:"weissstorch",n:"Weißstorch",s:"Ciconia ciconia",o:"Schreitvögel",fa:"Störche",h:["Offenland","Süßwasser"],t:2,m:"🕊️",tip:"Klappern auf dem Horst; ab Februar zurück."},
+{id:"graureiher",n:"Graureiher",s:"Ardea cinerea",o:"Schreitvögel",fa:"Reiher",h:["Süßwasser","Offenland"],t:1,m:"🕊️",tip:"Steht reglos am Grabenrand, fliegt mit eingezogenem Hals."},
+{id:"kranich",n:"Kranich",s:"Grus grus",o:"Kranichvögel",fa:"Kraniche",h:["Süßwasser","Offenland"],t:2,m:"🕊️",tip:"Im Oktober als trompetende Keile über dem Haus."},
+{id:"hoeckerschwan",n:"Höckerschwan",s:"Cygnus olor",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser"],t:1,m:"🦢",tip:"Orangeroter Schnabel mit schwarzem Höcker."},
+{id:"stockente",n:"Stockente",s:"Anas platyrhynchos",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser","Siedlung"],t:1,m:"🦆",tip:"Der Ausgangspunkt für jede Entenbestimmung."},
+{id:"haubentaucher",n:"Haubentaucher",s:"Podiceps cristatus",o:"Lappentaucher",fa:"Lappentaucher",h:["Süßwasser"],t:2,m:"🦆",tip:"Balztanz im Frühjahr, Junge reiten auf dem Rücken."},
+{id:"kormoran",n:"Kormoran",s:"Phalacrocorax carbo",o:"Ruderfüßer",fa:"Kormorane",h:["Süßwasser","Küste & Meer"],t:1,m:"🕊️",tip:"Sitzt mit ausgebreiteten Flügeln zum Trocknen."},
+{id:"eisvogel",n:"Eisvogel",s:"Alcedo atthis",o:"Rackenvögel",fa:"Eisvögel",h:["Süßwasser"],t:3,m:"🐦",tip:"Blauer Blitz über dem Bach; meist hört man den Pfiff zuerst."},
+{id:"wiedehopf",n:"Wiedehopf",s:"Upupa epops",o:"Rackenvögel",fa:"Wiedehopfe",h:["Offenland","Trockengebiet"],t:3,m:"🐦",tip:"Federhaube und „upupup“; in Deutschland sehr lokal."},
+
+/* --- Europa: Amphibien und Reptilien --- */
+{id:"zauneidechse",n:"Zauneidechse",s:"Lacerta agilis",o:"Schuppenkriechtiere",fa:"Echte Eidechsen",h:["Offenland","Trockengebiet"],t:2,m:"🦎",tip:"Männchen im Mai grasgrün an den Flanken; Bahndämme und Säume."},
+{id:"blindschleiche",n:"Blindschleiche",s:"Anguis fragilis",o:"Schuppenkriechtiere",fa:"Schleichen",h:["Wald","Siedlung"],t:2,m:"🦎",tip:"Keine Schlange, sondern eine beinlose Echse; unter Brettern."},
+{id:"ringelnatter",n:"Ringelnatter",s:"Natrix natrix",o:"Schuppenkriechtiere",fa:"Nattern",h:["Süßwasser"],t:2,m:"🐍",tip:"Gelbe Halbmonde im Nacken; schwimmt mit erhobenem Kopf."},
+{id:"kreuzotter",n:"Kreuzotter",s:"Vipera berus",o:"Schuppenkriechtiere",fa:"Vipern",h:["Gebirge","Offenland"],t:3,m:"🐍",tip:"Zickzackband und senkrechte Pupille; vormittags beim Sonnen."},
+{id:"erdkroete",n:"Erdkröte",s:"Bufo bufo",o:"Froschlurche",fa:"Kröten",h:["Wald","Süßwasser"],t:1,m:"🐸",tip:"Die Massenwanderung an den ersten milden Regenabenden im März."},
+{id:"grasfrosch",n:"Grasfrosch",s:"Rana temporaria",o:"Froschlurche",fa:"Echte Frösche",h:["Süßwasser","Wald"],t:1,m:"🐸",tip:"Dunkler Schläfenfleck; laicht in großen Ballen."},
+{id:"laubfrosch",n:"Laubfrosch",s:"Hyla arborea",o:"Froschlurche",fa:"Laubfrösche",h:["Süßwasser","Offenland"],t:3,m:"🐸",tip:"Knallgrün und daumengroß; abends ohrenbetäubend laut."},
+{id:"feuersalamander",n:"Feuersalamander",s:"Salamandra salamandra",o:"Schwanzlurche",fa:"Echte Salamander",h:["Wald"],t:2,m:"🦎",tip:"An Regenabenden auf Waldwegen an Quellbächen."},
+
+/* --- Europa: Wirbellose --- */
+{id:"tagpfauenauge",n:"Tagpfauenauge",s:"Aglais io",o:"Schmetterlinge",fa:"Edelfalter",h:["Offenland","Siedlung"],t:1,m:"🦋",tip:"Überwintert als Falter, fliegt schon im März."},
+{id:"schwalbenschwanz",n:"Schwalbenschwanz",s:"Papilio machaon",o:"Schmetterlinge",fa:"Ritterfalter",h:["Offenland","Gebirge"],t:2,m:"🦋",tip:"Sammelt sich auf Bergkuppen; Raupe auf Wilder Möhre."},
+{id:"hirschkaefer",n:"Hirschkäfer",s:"Lucanus cervus",o:"Käfer",fa:"Schröter",h:["Wald"],t:3,m:"🪲",tip:"Juniabende um alte Eichen; Männchen mit Geweih-Mandibeln."},
+{id:"koenigslibelle",n:"Große Königslibelle",s:"Anax imperator",o:"Libellen",fa:"Edellibellen",h:["Süßwasser"],t:2,m:"🪰",tip:"Patrouilliert im Sommer unermüdlich über dem Teich."},
+{id:"gottesanbeterin",n:"Gottesanbeterin",s:"Mantis religiosa",o:"Fangschrecken",fa:"Fangschrecken",h:["Trockengebiet","Offenland"],t:3,m:"🦗",tip:"Breitet sich nach Norden aus; Spätsommer an Trockenhängen."},
+
+/* --- Südamerika --- */
+{id:"jaguar",n:"Jaguar",s:"Panthera onca",o:"Raubtiere",fa:"Katzen",h:["Regenwald","Süßwasser"],t:3,m:"🐆",tip:"Beste Chance im Pantanal an Flussufern in der Trockenzeit."},
+{id:"puma",n:"Puma",s:"Puma concolor",o:"Raubtiere",fa:"Katzen",h:["Gebirge","Offenland"],t:3,m:"🐆",tip:"Einfarbig, langer Schwanz; Torres del Paine ist der sichere Ort."},
+{id:"ozelot",n:"Ozelot",s:"Leopardus pardalis",o:"Raubtiere",fa:"Katzen",h:["Regenwald"],t:3,m:"🐆",tip:"Nachtaktiv, meist nur als Augenpaar im Scheinwerfer."},
+{id:"nasenbaer",n:"Südamerikanischer Nasenbär",s:"Nasua nasua",o:"Raubtiere",fa:"Kleinbären",h:["Regenwald"],t:2,m:"🦝",tip:"In Trupps mit aufgestelltem Ringelschwanz, etwa an den Iguazú-Fällen."},
+{id:"riesenotter",n:"Riesenotter",s:"Pteronura brasiliensis",o:"Raubtiere",fa:"Marder",h:["Süßwasser","Regenwald"],t:3,m:"🦦",tip:"Bis 1,80 m, laut und in Familiengruppen; Pantanal und Amazonas."},
+{id:"maehnenrobbe",n:"Mähnenrobbe",s:"Otaria flavescens",o:"Raubtiere",fa:"Ohrenrobben",h:["Küste & Meer"],t:2,m:"🦭",tip:"An den Hafenmolen von Valdés bis Valparaíso."},
+{id:"bruellaffe",n:"Roter Brüllaffe",s:"Alouatta seniculus",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:2,m:"🐒",tip:"Im Morgengrauen kilometerweit zu hören — oft nur akustisch."},
+{id:"kapuzineraffe",n:"Kapuzineraffe",s:"Cebus capucinus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",tip:"Neugierig und laut; klaut an Rastplätzen alles Essbare."},
+{id:"klammeraffe",n:"Klammeraffe",s:"Ateles geoffroyi",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:3,m:"🐒",tip:"Hangelt mit Greifschwanz durch die Kronen, selten am Boden."},
+{id:"totenkopfaffe",n:"Totenkopfäffchen",s:"Saimiri sciureus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",tip:"In großen Trupps entlang von Flussufern."},
+{id:"faultier",n:"Dreifinger-Faultier",s:"Bradypus variegatus",o:"Zahnarme",fa:"Dreifinger-Faultiere",h:["Regenwald"],t:2,m:"🦥",tip:"Als moosiger Klumpen in der Astgabel; Fernglas hilft."},
+{id:"ameisenbaer",n:"Großer Ameisenbär",s:"Myrmecophaga tridactyla",o:"Zahnarme",fa:"Ameisenbären",h:["Savanne","Regenwald"],t:3,m:"🐜",tip:"Cerrado und Pantanal, morgens über offenes Grasland ziehend."},
+{id:"guerteltier",n:"Neunbinden-Gürteltier",s:"Dasypus novemcinctus",o:"Gürteltiere",fa:"Langnasengürteltiere",h:["Regenwald","Savanne"],t:2,m:"🦔",tip:"Nachts am Wegrand wühlend, erstaunlich taub für Geräusche."},
+{id:"capybara",n:"Capybara",s:"Hydrochoerus hydrochaeris",o:"Nagetiere",fa:"Meerschweinchen",h:["Süßwasser","Savanne"],t:1,m:"🐹",tip:"Das größte Nagetier der Welt; in Gruppen am Wasser."},
+{id:"tapir",n:"Flachlandtapir",s:"Tapirus terrestris",o:"Unpaarhufer",fa:"Tapire",h:["Regenwald","Süßwasser"],t:3,m:"🐖",tip:"Nachts an Salzlecken; rüsselartige Nase."},
+{id:"vikunja",n:"Vikunja",s:"Vicugna vicugna",o:"Paarhufer",fa:"Kamele",h:["Gebirge","Trockengebiet"],t:2,m:"🦙",tip:"Zierlich und wild, im Altiplano über 3.500 Metern."},
+{id:"guanako",n:"Guanako",s:"Lama guanicoe",o:"Paarhufer",fa:"Kamele",h:["Offenland","Gebirge"],t:2,m:"🦙",tip:"Patagonische Steppe, häufig entlang der Ruta 40."},
+{id:"flussdelfin",n:"Amazonas-Flussdelfin",s:"Inia geoffrensis",o:"Wale",fa:"Flussdelfine",h:["Süßwasser"],t:3,m:"🐬",tip:"Rosa gefärbt; taucht an Flusszusammenflüssen kurz auf."},
+{id:"andenkondor",n:"Andenkondor",s:"Vultur gryphus",o:"Greifvögel",fa:"Neuweltgeier",h:["Gebirge"],t:3,m:"🦅",tip:"Drei Meter Spannweite; Colca-Canyon am Vormittag."},
+{id:"hyazinthara",n:"Hyazinth-Ara",s:"Anodorhynchus hyacinthinus",o:"Papageien",fa:"Eigentliche Papageien",h:["Savanne","Regenwald"],t:3,m:"🦜",tip:"Kobaltblau, der größte Ara; Pantanal an Palmen."},
+{id:"gelbbrustara",n:"Gelbbrustara",s:"Ara ararauna",o:"Papageien",fa:"Eigentliche Papageien",h:["Regenwald"],t:2,m:"🦜",tip:"Fliegt paarweise und schreiend über den Wald."},
+{id:"tukan",n:"Riesentukan",s:"Ramphastos toco",o:"Spechtvögel",fa:"Tukane",h:["Savanne","Regenwald"],t:2,m:"🦜",tip:"Der orange Riesenschnabel ist auf 200 Meter erkennbar."},
+{id:"felsenhahn",n:"Andenfelsenhahn",s:"Rupicola peruvianus",o:"Sperlingsvögel",fa:"Schmuckvögel",h:["Regenwald","Gebirge"],t:3,m:"🐦",tip:"Leuchtend orange Männchen an Balzplätzen im Nebelwald."},
+{id:"hoatzin",n:"Hoatzin",s:"Opisthocomus hoazin",o:"Hoatzinvögel",fa:"Hoatzine",h:["Süßwasser","Regenwald"],t:3,m:"🐦",tip:"Riecht nach Mist, fliegt miserabel; Küken haben Flügelkrallen."},
+{id:"magellanpinguin",n:"Magellanpinguin",s:"Spheniscus magellanicus",o:"Pinguine",fa:"Pinguine",h:["Küste & Meer"],t:2,m:"🐧",tip:"Brutkolonien in Patagonien von Oktober bis März."},
+{id:"blaufusstoelpel",n:"Blaufußtölpel",s:"Sula nebouxii",o:"Ruderfüßer",fa:"Tölpel",h:["Küste & Meer"],t:3,m:"🐦",tip:"Galápagos; der Balztanz mit den blauen Füßen ist echt."},
+{id:"meerechse",n:"Meerechse",s:"Amblyrhynchus cristatus",o:"Schuppenkriechtiere",fa:"Leguane",h:["Küste & Meer"],t:3,m:"🦎",tip:"Nur auf Galápagos; niest Salz aus den Nasendrüsen."},
+{id:"gruenerleguan",n:"Grüner Leguan",s:"Iguana iguana",o:"Schuppenkriechtiere",fa:"Leguane",h:["Regenwald","Süßwasser"],t:2,m:"🦎",tip:"Sonnt sich auf Ästen über dem Wasser und lässt sich hineinfallen."},
+{id:"galapagosschildkroete",n:"Galápagos-Riesenschildkröte",s:"Chelonoidis niger",o:"Schildkröten",fa:"Landschildkröten",h:["Trockengebiet"],t:3,m:"🐢",tip:"Im Hochland von Santa Cruz frei in den Weiden."},
+{id:"brillenkaiman",n:"Brillenkaiman",s:"Caiman crocodilus",o:"Krokodile",fa:"Alligatoren",h:["Süßwasser","Regenwald"],t:2,m:"🐊",tip:"Nachts leuchten die Augen rot im Taschenlampenstrahl."},
+{id:"anakonda",n:"Große Anakonda",s:"Eunectes murinus",o:"Schuppenkriechtiere",fa:"Boas",h:["Süßwasser","Regenwald"],t:3,m:"🐍",tip:"In den Llanos in flachen Tümpeln; schwerste Schlange der Welt."},
+{id:"pfeilgiftfrosch",n:"Erdbeerfröschchen",s:"Oophaga pumilio",o:"Froschlurche",fa:"Baumsteigerfrösche",h:["Regenwald"],t:2,m:"🐸",tip:"Daumennagelgroß und knallrot; ruft aus der Laubstreu."},
+{id:"morphofalter",n:"Blauer Morphofalter",s:"Morpho peleides",o:"Schmetterlinge",fa:"Edelfalter",h:["Regenwald"],t:2,m:"🦋",tip:"Blitzt beim Flug metallisch blau, im Sitzen unscheinbar braun."},
+
+/* --- Übrige Welt --- */
+{id:"afrelefant",n:"Afrikanischer Steppenelefant",s:"Loxodonta africana",o:"Rüsseltiere",fa:"Elefanten",h:["Savanne"],t:2,m:"🐘",tip:"Große Ohren in Afrikaform; Chobe und Etosha an Wasserstellen."},
+{id:"waldelefant",n:"Afrikanischer Waldelefant",s:"Loxodonta cyclotis",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald"],t:3,m:"🐘",tip:"Kleiner, rundere Ohren, gerade Stoßzähne; Kongobecken und Gabun."},
+{id:"asiaelefant",n:"Asiatischer Elefant",s:"Elephas maximus",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald","Offenland"],t:3,m:"🐘",tip:"Kleinere Ohren, gewölbter Rücken; wild etwa in Sri Lanka."},
+{id:"loewe",n:"Löwe",s:"Panthera leo",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:2,m:"🦁",tip:"Schläft 20 Stunden am Tag; Aktivität in der Dämmerung."},
+{id:"leopard",n:"Leopard",s:"Panthera pardus",o:"Raubtiere",fa:"Katzen",h:["Savanne","Wald"],t:3,m:"🐆",tip:"Rosetten ohne Mittelpunkt; sucht Bäume mit hängendem Schwanz ab."},
+{id:"gepard",n:"Gepard",s:"Acinonyx jubatus",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:3,m:"🐆",tip:"Tränenstreifen im Gesicht, jagt tagsüber auf offener Fläche."},
+{id:"tiger",n:"Tiger",s:"Panthera tigris",o:"Raubtiere",fa:"Katzen",h:["Wald","Regenwald"],t:3,m:"🐅",tip:"Warnrufe von Affen und Hirschen verraten ihn meist zuerst."},
+{id:"eisbaer",n:"Eisbär",s:"Ursus maritimus",o:"Raubtiere",fa:"Bären",h:["Polar & Tundra","Küste & Meer"],t:3,m:"🐻‍❄️",tip:"Svalbard oder Churchill; im Sommer an der Packeiskante."},
+{id:"giraffe",n:"Giraffe",s:"Giraffa camelopardalis",o:"Paarhufer",fa:"Giraffenartige",h:["Savanne"],t:2,m:"🦒",tip:"Die Fleckenmuster unterscheiden die Unterarten."},
+{id:"steppenzebra",n:"Steppenzebra",s:"Equus quagga",o:"Unpaarhufer",fa:"Pferde",h:["Savanne"],t:2,m:"🦓",tip:"Breite Streifen bis zum Bauch; das häufigste der drei Zebras."},
+{id:"flusspferd",n:"Flusspferd",s:"Hippopotamus amphibius",o:"Paarhufer",fa:"Flusspferde",h:["Süßwasser","Savanne"],t:2,m:"🦛",tip:"Tagsüber nur Ohren und Nasenlöcher; nachts an Land."},
+{id:"gnu",n:"Streifengnu",s:"Connochaetes taurinus",o:"Paarhufer",fa:"Hornträger",h:["Savanne"],t:2,m:"🐃",tip:"Die Massenwanderung in der Serengeti zwischen Juli und Oktober."},
+{id:"breitmaulnashorn",n:"Breitmaulnashorn",s:"Ceratotherium simum",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne"],t:3,m:"🦏",tip:"Breites Maul zum Grasen, in kleinen Gruppen."},
+{id:"spitzmaulnashorn",n:"Spitzmaulnashorn",s:"Diceros bicornis",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne","Trockengebiet"],t:3,m:"🦏",tip:"Spitze Greiflippe, Einzelgänger, deutlich seltener."},
+{id:"schimpanse",n:"Schimpanse",s:"Pan troglodytes",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",tip:"Kibale und Gombe; die Rufe hört man lange vor der Gruppe."},
+{id:"berggorilla",n:"Berggorilla",s:"Gorilla beringei beringei",o:"Primaten",fa:"Menschenaffen",h:["Regenwald","Gebirge"],t:3,m:"🦍",tip:"Nur mit Permit in Uganda, Ruanda oder der DR Kongo."},
+{id:"orangutan",n:"Borneo-Orang-Utan",s:"Pongo pygmaeus",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",tip:"Frische Schlafnester im Kronendach verraten die Nähe."},
+{id:"kaenguru",n:"Rotes Riesenkänguru",s:"Osphranter rufus",o:"Beuteltiere",fa:"Kängurus",h:["Trockengebiet","Offenland"],t:2,m:"🦘",tip:"Im australischen Outback in der Dämmerung an Straßen."},
+{id:"komodowaran",n:"Komodowaran",s:"Varanus komodoensis",o:"Schuppenkriechtiere",fa:"Warane",h:["Trockengebiet"],t:3,m:"🦎",tip:"Nur auf wenigen indonesischen Inseln, immer mit Ranger."},
+{id:"buckelwal",n:"Buckelwal",s:"Megaptera novaeangliae",o:"Wale",fa:"Furchenwale",h:["Küste & Meer"],t:3,m:"🐋",tip:"Lange weiße Brustflossen; springt häufiger als andere Großwale."},
+{id:"orca",n:"Orca",s:"Orcinus orca",o:"Wale",fa:"Delfine",h:["Küste & Meer","Polar & Tundra"],t:3,m:"🐋",tip:"Hohe Rückenfinne beim Bullen; Norwegen im Winter."},
+{id:"walhai",n:"Walhai",s:"Rhincodon typus",o:"Ammenhaiartige",fa:"Walhaie",h:["Küste & Meer"],t:3,m:"🐟",tip:"Größter Fisch der Welt, völlig harmlos; Planktonblüten folgen."},
+{id:"manta",n:"Riffmanta",s:"Mobula alfredi",o:"Rochen",fa:"Teufelsrochen",h:["Küste & Meer"],t:3,m:"🐠",tip:"An Putzerstationen kreisend, oft mehrere hintereinander."},
+{id:"gruenemeeresschildkroete",n:"Grüne Meeresschildkröte",s:"Chelonia mydas",o:"Schildkröten",fa:"Meeresschildkröten",h:["Küste & Meer"],t:2,m:"🐢",tip:"Weidet Seegras im Flachwasser; taucht zum Luftholen auf."}
+];
+
+/* ====== Speicher ====== */
+const KEY="feldbuch.v1";
+let memOnly=false, state={name:"",flair:"",view:"kachel",fs:1,d:{}};
+function load(){try{const r=localStorage.getItem(KEY);if(r)state=Object.assign(state,JSON.parse(r));}catch(e){memOnly=true;}}
+function save(){if(memOnly)return;try{localStorage.setItem(KEY,JSON.stringify(state));}
+  catch(e){memOnly=true;toast("Speicher voll. Exportiere deine Daten und entferne ein paar Fotos.");}}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("on"),2800);}
+
+/* ====== Ableitungen ====== */
+const METH=["Sichtung","Ruf","Spur","Losung","Totfund","Detektor"];
+const byId=i=>ARTEN.find(x=>x.id===i);
+const rec=i=>state.d[i]||null;
+const gesehen=()=>ARTEN.filter(x=>rec(x.id)&&rec(x.id).v);
+const photoCount=()=>Object.values(state.d).reduce((s,r)=>s+((r.photos||[]).length),0);
+const habCount=h=>gesehen().filter(x=>x.h.includes(h)).length;
+const methCount=m=>gesehen().filter(x=>(rec(x.id).meth||[]).includes(m)).length;
+const nurMeth=m=>gesehen().filter(x=>{const q=rec(x.id).meth||[];return q.length===1&&q[0]===m}).length;
+const setOf=def=>ARTEN.filter(x=>def.ids?def.ids.includes(x.id):def.fam?x.fa===def.fam:def.ord?(Array.isArray(def.ord)?def.ord.includes(x.o):x.o===def.ord):false).map(x=>x.id);
+const xpArten=()=>gesehen().reduce((s,x)=>s+10*(x.t||1),0);
+const xpOrden=()=>15*achs().filter(a=>a.ok).length;
+const xp=()=>xpArten()+xpOrden();
+const STUFE=80;
+function groessterTag(){
+  const m={}; gesehen().forEach(x=>{const d=rec(x.id).first;if(d)m[d]=(m[d]||0)+1;});
+  return Math.max(0,...Object.values(m));
+}
+const KAT=["Sammeln","Lebensräume","Nachweis","Systematik","Erleben"];
+const ADEF=[
+{id:"arten",name:"Arten",cat:"Sammeln",ic:"📓",d:n=>n+" Arten im Feldbuch",f:()=>gesehen().length,
+ tiers:[{n:1,t:"Erster Eintrag",fl:"Anfänger:in"},{n:10,t:"Zehn Arten"},{n:25,t:"Fünfundzwanzig",fl:"Sammler:in"},{n:50,t:"Fünfzig",fl:"Feldforscher:in"},{n:100,t:"Hundert",fl:"Naturkundler:in"}]},
+{id:"ordnungen",name:"Ordnungen",cat:"Sammeln",ic:"🧬",d:n=>n+" verschiedene Ordnungen",f:()=>new Set(gesehen().map(x=>x.o)).size,
+ tiers:[{n:5,t:"Quer durchs System"},{n:10,t:"Systematiker",fl:"Systematiker:in"},{n:15,t:"Breite Front",fl:"Taxonom:in"}]},
+{id:"familien",name:"Familien",cat:"Sammeln",ic:"🌳",d:n=>n+" verschiedene Familien",f:()=>new Set(gesehen().map(x=>x.fa)).size,
+ tiers:[{n:10,t:"Zehn Familien"},{n:25,t:"Fünfundzwanzig Familien",fl:"Stammbaumkenner:in"}]},
+{id:"fotos",name:"Belege",cat:"Sammeln",ic:"📸",d:n=>n+" Fotos im Feldbuch",f:()=>photoCount(),
+ tiers:[{n:5,t:"Erste Belege"},{n:20,t:"Bildarchiv",fl:"Bildjäger:in"}]},
+{id:"legend",name:"Seltene Arten",cat:"Sammeln",ic:"💎",d:n=>n+" Arten der Stufe legendär",f:()=>gesehen().filter(x=>x.t===3).length,
+ tiers:[{n:1,t:"Glückstreffer",fl:"Glückspilz"},{n:10,t:"Sammler des Seltenen",fl:"Legendenjäger:in"}]},
+
+{id:"habs",name:"Lebensräume",cat:"Lebensräume",ic:"🗺️",d:n=>"Arten aus "+n+" Lebensräumen",f:()=>HAB.filter(h=>habCount(h)>0).length,
+ tiers:[{n:3,t:"Drei Lebensräume"},{n:6,t:"Sechs Lebensräume",fl:"Grenzgänger:in"},{n:10,t:"Alle Lebensräume",fl:"Weltenkenner:in"}]},
+{id:"wald",name:"Wald",cat:"Lebensräume",ic:"🌲",d:n=>n+" Waldarten",f:()=>habCount("Wald"),
+ tiers:[{n:8,t:"Waldgänger"},{n:20,t:"Waldläufer",fl:"Waldläufer:in"}]},
+{id:"wasser",name:"Süßwasser",cat:"Lebensräume",ic:"💧",d:n=>n+" Arten am Süßwasser",f:()=>habCount("Süßwasser"),
+ tiers:[{n:6,t:"Uferbegeher"},{n:15,t:"Wasserratte",fl:"Wasserratte"}]},
+{id:"meer",name:"Küste und Meer",cat:"Lebensräume",ic:"🌊",d:n=>n+" Arten an Küste und Meer",f:()=>habCount("Küste & Meer"),
+ tiers:[{n:4,t:"Salzluft"},{n:10,t:"Seefahrer",fl:"Seefahrer:in"}]},
+{id:"berg",name:"Gebirge",cat:"Lebensräume",ic:"🏔️",d:n=>n+" Arten im Gebirge",f:()=>habCount("Gebirge"),
+ tiers:[{n:5,t:"Höhenluft"},{n:12,t:"Gipfelstürmer",fl:"Gipfelstürmer:in"}]},
+{id:"stadt",name:"Siedlung",cat:"Lebensräume",ic:"🏘️",d:n=>n+" Arten im Siedlungsraum",f:()=>habCount("Siedlung"),
+ tiers:[{n:8,t:"Stadtfauna"},{n:16,t:"Kulturfolger",fl:"Kulturfolger:in"}]},
+{id:"dschungel",name:"Regenwald",cat:"Lebensräume",ic:"🌴",d:n=>n+" Arten im Regenwald",f:()=>habCount("Regenwald"),
+ tiers:[{n:5,t:"Unterholz"},{n:15,t:"Kronendach",fl:"Regenwaldkenner:in"}]},
+{id:"savanne",name:"Savanne",cat:"Lebensräume",ic:"🌾",d:n=>n+" Arten in der Savanne",f:()=>habCount("Savanne"),
+ tiers:[{n:4,t:"Grasland"},{n:10,t:"Savannenkenner",fl:"Savannenkenner:in"}]},
+
+{id:"gehoert",name:"Nur gehört",cat:"Nachweis",ic:"👂",d:n=>n+" Arten ausschließlich am Ruf nachgewiesen",f:()=>nurMeth("Ruf"),
+ tiers:[{n:3,t:"Ohrenmensch"},{n:8,t:"Nur gehört, nie gesehen",fl:"Lauscher:in"}]},
+{id:"spuren",name:"Spuren",cat:"Nachweis",ic:"🐾",d:n=>n+" Arten über Spur oder Losung",f:()=>gesehen().filter(x=>{const q=rec(x.id).meth||[];return q.includes("Spur")||q.includes("Losung")}).length,
+ tiers:[{n:3,t:"Fährtensucher"},{n:8,t:"Spurenleser",fl:"Spurenleser:in"}]},
+{id:"detektor",name:"Detektor",cat:"Nachweis",ic:"📡",d:n=>n+" Arten am Detektor",f:()=>methCount("Detektor"),
+ tiers:[{n:1,t:"Ultraschall",fl:"Nachtschicht"}]},
+{id:"allemeth",name:"Alle Nachweisarten",cat:"Nachweis",ic:"🧭",d:()=>"Jede der sechs Nachweisarten mindestens einmal",f:()=>METH.filter(m=>methCount(m)>0).length,
+ tiers:[{n:6,t:"Allrounder",fl:"Allrounder:in"}]},
+
+{id:"katzen",name:"Katzen",cat:"Systematik",ic:"🐆",fam:"Katzen",d:n=>n+" Arten aus der Familie der Katzen",
+ tiers:[{n:3,t:"Katzenfreund"},{n:6,t:"Katzenkenner",fl:"Katzenkenner:in"},{n:9,t:"Alle Katzen",fl:"Raubkatzenmeister:in"}]},
+{id:"affen",name:"Menschenaffen",cat:"Systematik",ic:"🦍",fam:"Menschenaffen",d:n=>n+" der drei Menschenaffenarten",
+ tiers:[{n:1,t:"Verwandtschaft"},{n:3,t:"Alle Menschenaffen",fl:"Hominide"}]},
+{id:"primaten",name:"Primaten",cat:"Systematik",ic:"🐒",ord:"Primaten",d:n=>n+" Primatenarten",
+ tiers:[{n:3,t:"Affenbande"},{n:6,t:"Primatologe",fl:"Primatolog:in"}]},
+{id:"marder",name:"Marder",cat:"Systematik",ic:"🦡",fam:"Marder",d:n=>n+" Arten aus der Familie der Marder",
+ tiers:[{n:3,t:"Marderfreund"},{n:6,t:"Alle Marder",fl:"Marderkenner:in"}]},
+{id:"spechte",name:"Spechte",cat:"Systematik",ic:"🪶",fam:"Spechte",d:n=>n+" heimische Spechtarten",
+ tiers:[{n:2,t:"Klopfzeichen"},{n:3,t:"Alle drei Spechte",fl:"Spechtkenner:in"}]},
+{id:"greife",name:"Greifvögel",cat:"Systematik",ic:"🦅",ord:["Greifvögel","Falken"],d:n=>n+" Arten aus Greifvögeln und Falken",
+ tiers:[{n:3,t:"Blick nach oben"},{n:7,t:"Greifvogelkenner",fl:"Falkner:in"}]},
+{id:"eulen",name:"Eulen",cat:"Systematik",ic:"🦉",ord:"Eulen",d:n=>n+" Eulenarten",
+ tiers:[{n:1,t:"Nachtgesang"},{n:2,t:"Waldkauz und Uhu",fl:"Eulenfreund:in"}]},
+{id:"raben",name:"Rabenvögel",cat:"Systematik",ic:"🖤",fam:"Rabenvögel",d:n=>n+" Arten aus der Familie der Rabenvögel",
+ tiers:[{n:2,t:"Schwarzes Gefieder"},{n:4,t:"Alle Rabenvögel",fl:"Rabenvater"}]},
+{id:"elefanten",name:"Elefanten",cat:"Systematik",ic:"🐘",fam:"Elefanten",d:n=>n+" der drei Elefantenarten",
+ tiers:[{n:1,t:"Rüsseltier"},{n:3,t:"Alle drei Elefanten",fl:"Elefantenkenner:in"}]},
+{id:"wale",name:"Wale",cat:"Systematik",ic:"🐋",ord:"Wale",d:n=>n+" Walarten",
+ tiers:[{n:1,t:"Blas gesichtet"},{n:4,t:"Alle Wale im Dex",fl:"Walfahrer:in"}]},
+{id:"robben",name:"Robben",cat:"Systematik",ic:"🦭",ids:["seehund","kegelrobbe","maehnenrobbe"],d:n=>n+" Robbenarten",
+ tiers:[{n:2,t:"Sandbankgäste"},{n:3,t:"Alle Robben",fl:"Robbenzähler:in"}]},
+{id:"hirsche",name:"Hirsche",cat:"Systematik",ic:"🦌",fam:"Hirsche",d:n=>n+" heimische Hirscharten",
+ tiers:[{n:2,t:"Geweihträger"},{n:3,t:"Reh, Rot- und Damhirsch",fl:"Waidmann"}]},
+{id:"lurche",name:"Amphibien",cat:"Systematik",ic:"🐸",ord:["Froschlurche","Schwanzlurche"],d:n=>n+" Amphibienarten",
+ tiers:[{n:3,t:"Laichzeit"},{n:5,t:"Amphibienkenner",fl:"Amphibienkenner:in"}]},
+{id:"kriechtiere",name:"Reptilien",cat:"Systematik",ic:"🦎",ord:["Schuppenkriechtiere","Schildkröten","Krokodile"],d:n=>n+" Reptilienarten",
+ tiers:[{n:3,t:"Sonnenanbeter"},{n:8,t:"Herpetologe",fl:"Herpetolog:in"}]},
+
+{id:"tag",name:"Großer Tag",cat:"Erleben",ic:"🌅",d:n=>n+" Arten am selben Tag erstmals notiert",f:()=>groessterTag(),
+ tiers:[{n:5,t:"Guter Tag"},{n:10,t:"Großer Tag",fl:"Tagesjäger:in"}]},
+{id:"wieder",name:"Wiederbegegnungen",cat:"Erleben",ic:"🔁",d:n=>"Eine Art "+n+"× notiert",f:()=>Math.max(0,...gesehen().map(x=>rec(x.id).count||1)),
+ tiers:[{n:5,t:"Alte Bekannte"},{n:20,t:"Hausfreund",fl:"Stammgast"}]}
+];
+
+function achs(){
+  const out=[];
+  ADEF.forEach(def=>{
+    const cur=def.f?def.f():setOf(def).filter(i=>rec(i)&&rec(i).v).length;
+    def.tiers.forEach((tt,i)=>out.push({key:def.id+"-"+i,grp:def.id,cat:def.cat,ic:def.ic,
+      t:tt.t,fl:tt.fl,d:def.d(tt.n),raw:cur,cur:Math.min(cur,tt.n),need:tt.n,ok:cur>=tt.n}));
+  });
+  return out;
+}
+function gruppen(){
+  const a=achs();
+  return ADEF.map(def=>{
+    const slots=a.filter(z=>z.grp===def.id), erreicht=slots.filter(z=>z.ok).length;
+    return {def,slots,erreicht,naechst:slots.find(z=>!z.ok)||null,fertig:erreicht===slots.length};
+  });
+}
+function flairs(){return achs().filter(a=>a.fl).map(a=>({name:a.fl,ok:a.ok,von:a.t}));}
+
+/* ====== Rendering ====== */
+let tab="dex", filter="all", hFilter="", q="", justStamped=null, aFilter="all", aKat="";
+function renderKopf(){
+  const v=gesehen().length,p=xp(),lvl=1+Math.floor(p/STUFE),prog=p%STUFE;
+  document.getElementById("lvlOut").textContent=lvl;
+  document.getElementById("cntOut").innerHTML=v+"<small>/"+ARTEN.length+"</small>";
+  document.getElementById("xpFill").style.width=(prog/STUFE*100)+"%";
+  document.getElementById("flairOut").textContent=state.flair||"";
+  const nm=(state.name||"Beobachter:in").toUpperCase().replace(/[^A-Z0-9ÄÖÜ ]/g,"").replace(/ /g,"<");
+  const pad=(s,n)=>(s+"<".repeat(Math.max(0,n-s.length))).slice(0,n);
+  document.getElementById("mrz1").textContent=pad("F<DEX"+nm+"<<",44);
+  document.getElementById("mrz2").textContent=pad("A"+String(v).padStart(3,"0")+"<<O"+new Set(gesehen().map(x=>x.o)).size+
+    "<<XP"+String(p).padStart(5,"0")+"<<ORD"+String(achs().filter(a=>a.ok).length).padStart(2,"0"),44);
+}
+function renderDex(){
+  const g=document.getElementById("grid"),hf=document.getElementById("habFilters");
+  g.className="grid"+(state.view==="liste"?" liste":"");
+  const vt=document.getElementById("viewToggle"); if(vt)vt.textContent=state.view==="liste"?"Kacheln":"Liste";
+  if(!hf.dataset.done){
+    hf.innerHTML='<button class="chip" data-h="" aria-pressed="true">Alle</button>'+
+      HAB.map(h=>`<button class="chip" data-h="${h}" aria-pressed="false">${h}</button>`).join("");
+    hf.dataset.done=1;
+  }
+  const list=ARTEN.filter(x=>{
+    const r=rec(x.id);
+    if(filter==="seen"&&!(r&&r.v))return false;
+    if(filter==="open"&&(r&&r.v))return false;
+    if(hFilter&&!x.h.includes(hFilter))return false;
+    if(q&&!(x.n.toLowerCase().includes(q)||x.s.toLowerCase().includes(q)||x.fa.toLowerCase().includes(q)||x.o.toLowerCase().includes(q)))return false;
+    return true;
+  }).sort((a,b)=>a.n.localeCompare(b.n,"de"));
+  g.innerHTML="";
+  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">Keine Art gefunden.</div>';justStamped=null;return;}
+  list.forEach(x=>{
+    const r=rec(x.id),on=r&&r.v;
+    const b=document.createElement("button");
+    b.className="card"+(on?"":" un")+(x.t===3?" tier3":"")+(justStamped===x.id?" stamped":"");
+    b.dataset.id=x.id;
+    b.innerHTML=`<div><div class="mot">${x.m}</div><div class="nm">${x.n}</div><div class="sci">${x.s}</div></div>
+      <div class="meta">${on?((r.meth||[]).join(", ")||"notiert"):(x.t===3?"legendär":x.t===2?"selten":"häufig")}</div>
+      ${on?`<div class="mini">✓</div>`:""}`;
+    g.appendChild(b);
+  });
+  justStamped=null;
+}
+function renderLog(){
+  const v=gesehen().slice().sort((a,b)=>(rec(b.id).first||"").localeCompare(rec(a.id).first||""));
+  const st=(n,l)=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  document.getElementById("logStats").innerHTML=
+    st(v.length,"Arten")+st(new Set(v.map(x=>x.o)).size,"Ordnungen")+st(new Set(v.map(x=>x.fa)).size,"Familien")+
+    st(HAB.filter(h=>habCount(h)>0).length+"/10","Lebensräume")+st(photoCount(),"Fotos")+st(groessterTag(),"Bester Tag");
+  const box=document.getElementById("log");
+  if(!v.length){box.innerHTML='<div class="empty">Noch nichts notiert. Öffne im Dex eine Art und hake sie ab.</div>';return;}
+  box.innerHTML=v.map(x=>{const r=rec(x.id);
+    const d=r.first?new Date(r.first).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"}):"ohne Datum";
+    const sub=[(r.meth||[]).join(", "),r.ort].filter(Boolean).join(" · ");
+    return `<button class="eintrag" data-id="${x.id}"><div class="mot">${x.m}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${x.n}</div><div class="sub">${sub||x.fa}</div></div>
+      <div class="dt">${d}${(r.count||1)>1?"<br>"+r.count+"×":""}</div></button>`;}).join("");
+}
+function renderAch(){
+  const fh=document.getElementById("achFilters");
+  if(!fh.dataset.done){
+    fh.innerHTML=[["all","Alle"],["done","Erhalten"],["open","Offen"],["near","Fast geschafft"]]
+      .map(([k,l],i)=>`<button class="chip" data-af="${k}" aria-pressed="${i===0}">${l}</button>`).join("");
+    document.getElementById("achKat").innerHTML='<button class="chip" data-ak="" aria-pressed="true">Alle</button>'+
+      KAT.map(k=>`<button class="chip" data-ak="${k}" aria-pressed="false">${k}</button>`).join("");
+    fh.dataset.done=1;
+  }
+  const alle=achs(),erh=alle.filter(z=>z.ok).length;
+  const g=gruppen().filter(x=>{
+    if(aKat&&x.def.cat!==aKat)return false;
+    if(aFilter==="done")return x.erreicht>0;
+    if(aFilter==="open")return !x.fertig;
+    if(aFilter==="near")return !x.fertig&&x.naechst&&x.naechst.cur/x.naechst.need>=.5;
+    return true;
+  });
+  const kopf=`<p class="note" style="margin-bottom:12px">${erh} von ${alle.length} Ordensstufen · jede Stufe bringt 15 XP.</p>`;
+  if(!g.length){document.getElementById("achList").innerHTML=kopf+'<div class="empty">Hier ist gerade nichts.</div>';return;}
+  document.getElementById("achList").innerHTML=kopf+g.map(x=>{
+    const hoch=x.slots.filter(z=>z.ok).pop();
+    const pips=x.slots.map(z=>`<span class="pip${z.ok?" on":""}"></span>`).join("");
+    let zeile;
+    if(x.fertig) zeile="Alle "+x.slots.length+" Stufen erhalten"+(hoch.fl?" · Flair „"+hoch.fl+"“":"");
+    else if(hoch) zeile="Erreicht: "+hoch.t+" · weiter zu "+x.naechst.t+" ("+x.naechst.cur+"/"+x.naechst.need+")";
+    else zeile=x.naechst.cur+" / "+x.naechst.need+" → "+x.naechst.t;
+    return `<button class="ach${x.erreicht?"":" locked"}" data-grp="${x.def.id}"><div class="ic">${x.def.ic}</div>
+      <div style="flex:1;min-width:0"><div class="t">${x.def.name}</div>
+      <div class="d">${x.fertig?x.slots[x.slots.length-1].d:x.naechst.d}</div>
+      <div class="pg">${zeile}</div>${x.slots.length>1?`<div class="pips">${pips}</div>`:""}</div>
+      <div class="chev">›</div></button>`;}).join("");
+}
+function renderProf(){
+  const p=xp(),lvl=1+Math.floor(p/STUFE),rest=STUFE-(p%STUFE);
+  const row=(a,b)=>`<div class="xprow"><span>${a}</span><b>${b}</b></div>`;
+  document.getElementById("profBody").innerHTML=`
+    <div class="panel"><h3>Stufe ${lvl}</h3>
+      <div class="xpbar" style="margin-bottom:9px"><i style="width:${(p%STUFE)/STUFE*100}%"></i></div>
+      <p class="note">Noch <b>${rest} XP</b> bis Stufe ${lvl+1}. Jede Stufe kostet ${STUFE} XP.</p></div>
+    <div class="panel"><h3>Woher die XP kommen</h3>
+      ${row(gesehen().length+" Arten (häufig 10, selten 20, legendär 30)",xpArten())}
+      ${row(achs().filter(a=>a.ok).length+" Ordensstufen à 15",xpOrden())}
+      <div class="xprow sum"><span><b>Summe</b></span><b>${p} XP</b></div></div>
+    <div class="panel"><h3>Flair</h3>
+      <div class="flairs"><button data-flair="" class="${state.flair?"":"on"}">ohne</button>
+      ${flairs().map(f=>`<button data-flair="${f.name}" class="${f.ok?(state.flair===f.name?"on":""):"lock"}" ${f.ok?"":"disabled"} style="${f.ok?"":"opacity:.4;border-style:dashed"}" title="${f.ok?"":"Orden: "+f.von}">${f.name}</button>`).join("")}</div>
+      <p class="note" style="margin-top:9px">Gesperrte Flairs schaltest du über den jeweiligen Orden frei.</p></div>
+    <div class="panel"><h3>Schriftgröße</h3>
+      <div class="flairs">${[["1","Normal"],["1.15","Groß"],["1.3","Sehr groß"]].map(o=>
+        `<button data-fs="${o[0]}" class="${String(state.fs||1)===o[0]?"on":""}">${o[1]}</button>`).join("")}</div></div>`;
+}
+function renderData(){
+  document.getElementById("storeWarn").innerHTML=memOnly
+    ?'<div class="warn">Dieser Browser speichert gerade nichts dauerhaft. Prüfe, ob du im privaten Modus bist.</div>':"";
+  const st=(n,l)=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  const bytes=new Blob([JSON.stringify(state)]).size;
+  document.getElementById("dataStats").innerHTML=st(gesehen().length,"Einträge")+st(photoCount(),"Fotos")+
+    st((bytes/1048576).toFixed(2)+" MB","Belegter Platz");
+}
+function render(){renderKopf();({dex:renderDex,log:renderLog,ach:renderAch,prof:renderProf,data:renderData})[tab]();}
+
+/* ====== Ordensmeldung ====== */
+function ordenStand(){return new Set(achs().filter(a=>a.ok).map(a=>a.key));}
+function ordenPruefen(vor){const neu=achs().filter(a=>a.ok&&!vor.has(a.key));if(neu.length)zeigeOrden(neu);}
+let ordenQueue=[];
+function zeigeOrden(l){ordenQueue=ordenQueue.concat(l);if(!document.getElementById("ordenPop"))naechsterOrden();}
+function naechsterOrden(){
+  const o=ordenQueue.shift(); const alt=document.getElementById("ordenPop"); if(alt)alt.remove();
+  if(!o)return;
+  const d=document.createElement("div"); d.id="ordenPop"; d.className="ordenpop";
+  d.innerHTML=`<div class="ordenkarte"><div class="oben">Orden erhalten</div><div class="ic">${o.ic}</div>
+    <div class="tt">${o.t}</div><div class="dd">${o.d}</div>
+    ${o.fl?`<div class="fl">Flair freigeschaltet · ${o.fl}</div>`:""}
+    ${ordenQueue.length?`<div class="rest">noch ${ordenQueue.length} weitere</div>`:""}</div>`;
+  document.body.appendChild(d);
+  const weg=()=>{d.remove();clearTimeout(t);naechsterOrden();};
+  d.addEventListener("click",weg); const t=setTimeout(weg,3600);
+}
+
+/* ====== Artseite ====== */
+let openId=null;
+const MAXFOTOS=3;
+function ensure(i){if(!state.d[i])state.d[i]={v:0,first:"",count:1,meth:[],ort:"",note:"",photos:[]};
+  const r=state.d[i];r.meth=r.meth||[];r.photos=r.photos||[];return r;}
+const esc=s=>String(s).replace(/"/g,"&quot;");
+function openSheet(id){
+  openId=id; const x=byId(id),r=ensure(id);
+  const tier=x.t===3?"legendär":x.t===2?"selten":"häufig";
+  document.getElementById("sheetHost").innerHTML=`<div class="sheet" id="sheet"><div class="page">
+    <div class="page-hd"><div class="mot">${x.m}</div>
+      <div><h2>${x.n}</h2><div class="sci">${x.s}</div></div>
+      <button class="close" data-act="close" aria-label="Schließen">✕</button></div>
+    <div class="sec"><h3>Steckbrief</h3><div class="facts">
+      <div><div class="k">Ordnung</div><div class="v">${x.o}</div></div>
+      <div><div class="k">Familie</div><div class="v">${x.fa}</div></div>
+      <div><div class="k">Häufigkeit</div><div class="v">${tier}</div></div>
+      <div><div class="k">Lebensraum</div><div class="v">${x.h.join(", ")}</div></div>
+    </div><div class="hint">${x.tip}</div></div>
+    <div class="sec">
+      <button class="bigbtn${r.v?" on":""}" data-act="toggle">${r.v?"Notiert — Eintrag zurücknehmen":"Als beobachtet eintragen"}</button>
+      <div class="hint">Zählt nur frei lebend. Tiere in Zoos, Gehegen und Aquarien gehören nicht ins Feldbuch.</div>
+    </div>
+    <div class="sec" ${r.v?"":'style="opacity:.45;pointer-events:none"'}>
+      <h3>Beobachtung</h3>
+      <div class="frm">
+        <label><span class="lb">Erstes Mal</span><input type="date" data-k="first" value="${r.first||""}"></label>
+        <label><span class="lb">Wie oft insgesamt</span><input type="number" min="1" max="999" data-k="count" value="${r.count||1}"></label>
+        <div class="wide"><span class="lb">Nachweis — mehrfach möglich</span>
+          <div class="modes">${METH.map(m=>`<button data-meth="${m}" class="${r.meth.includes(m)?"on":""}">${m}</button>`).join("")}</div></div>
+        <label class="wide"><span class="lb">Wo</span><input data-k="ort" value="${esc(r.ort||"")}" placeholder="Ort, Gebiet, Gewässer …"></label>
+        <label class="wide"><span class="lb">Notiz</span><textarea data-k="note" placeholder="Was war los? Wie viele? Was hat es getan?">${r.note||""}</textarea></label>
+      </div>
+    </div>
+    <div class="sec" ${r.v?"":'style="opacity:.45;pointer-events:none"'}>
+      <h3>Belege · ${r.photos.length}/${MAXFOTOS}</h3>
+      <div class="photos">
+        ${r.photos.map((p,i)=>`<div class="slot"><img src="${p}" alt=""><button class="rm" data-rm="${i}">✕</button></div>`).join("")}
+        ${r.photos.length<MAXFOTOS?`<button class="slot" data-add="1">+ Fotos</button>`:""}
+      </div>
+      <div class="hint">Mehrere Bilder auf einmal möglich; sie werden verkleinert und bleiben auf diesem Gerät.</div>
+    </div>
+    <div class="sec" style="border:0;text-align:right"><button class="smallbtn" data-act="close">Schließen</button></div>
+  </div></div>`;
+  document.body.style.overflow="hidden"; bindSheet();
+}
+function prune(i){const r=state.d[i];if(!r)return;
+  if(!r.v&&!r.note&&!r.ort&&!r.meth.length&&!r.photos.length){delete state.d[i];save();}}
+function closeSheet(){prune(openId);document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";openId=null;render();}
+function shrink(file,max,q,cb){
+  const fr=new FileReader();
+  fr.onload=e=>{const img=new Image();
+    img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height));
+      const cv=document.createElement("canvas");cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);cb(cv.toDataURL("image/jpeg",q));};
+    img.onerror=()=>toast("Bild konnte nicht gelesen werden.");img.src=e.target.result;};
+  fr.readAsDataURL(file);
+}
+function pickPhotos(multi,max,q,done){
+  const f=document.createElement("input");f.type="file";f.accept="image/*";if(multi)f.multiple=true;
+  f.onchange=()=>{const files=[...f.files];if(!files.length)return;let left=files.length,out=[];
+    files.forEach(file=>shrink(file,max,q,u=>{out.push(u);if(!--left)done(out);}));};
+  f.click();
+}
+function bindSheet(){
+  const sh=document.getElementById("sheet"); if(!sh)return;
+  sh.addEventListener("click",e=>{
+    if(e.target===sh){closeSheet();return;}
+    const b=e.target.closest("button"); if(!b)return;
+    const r=ensure(openId);
+    const vor=ordenStand(); setTimeout(()=>ordenPruefen(vor),0);
+    if(b.dataset.act==="close"){closeSheet();return;}
+    if(b.dataset.act==="toggle"){
+      r.v=r.v?0:1;
+      if(r.v){if(!r.first)r.first=new Date().toISOString().slice(0,10);
+              if(!r.meth.length)r.meth=["Sichtung"];justStamped=openId;}
+      save();openSheet(openId);renderKopf();return;}
+    if(b.dataset.meth){const m=b.dataset.meth,i=r.meth.indexOf(m);
+      i>-1?r.meth.splice(i,1):r.meth.push(m);save();openSheet(openId);renderKopf();return;}
+    if(b.dataset.rm!==undefined){r.photos.splice(+b.dataset.rm,1);save();openSheet(openId);return;}
+    if(b.dataset.add!==undefined){pickPhotos(true,900,.6,u=>{
+        const frei=MAXFOTOS-r.photos.length;
+        if(u.length>frei)toast("Nur "+frei+" Bild(er) passen noch rein.");
+        r.photos.push(...u.slice(0,frei));save();openSheet(openId);});return;}
+  });
+  const onEdit=e=>{
+    const vor=ordenStand(); setTimeout(()=>ordenPruefen(vor),0);
+    const k=e.target.dataset.k; if(!k)return;
+    ensure(openId)[k]=e.target.value; save(); renderKopf();
+  };
+  sh.addEventListener("change",onEdit); sh.addEventListener("input",onEdit);
+}
+function openAchSheet(id){
+  const x=gruppen().find(z=>z.def.id===id); if(!x)return; const def=x.def;
+  const stufen=x.slots.map(z=>`<div class="setitem${z.ok?" on":""}" style="gap:9px">
+    <b>${z.ok?"✓":"·"}</b><span style="flex:1">${z.t} — ${z.d}${z.fl?" · Flair „"+z.fl+"“":""}</span>
+    <span style="font-family:var(--mono);font-size:10px">${Math.min(z.raw,z.need)}/${z.need}</span></div>`).join("");
+  let liste="";
+  if(!def.f){
+    const arten=setOf(def).map(byId).sort((a,b)=>{const av=rec(a.id)&&rec(a.id).v?0:1,bv=rec(b.id)&&rec(b.id).v?0:1;
+      return av-bv||a.n.localeCompare(b.n,"de")});
+    liste=`<div class="sec"><h3>Arten · ${arten.filter(z=>rec(z.id)&&rec(z.id).v).length}/${arten.length}</h3>
+      <div class="setgrid">${arten.map(z=>{const on=rec(z.id)&&rec(z.id).v;
+        return `<div class="setitem${on?" on":""}"><span>${z.m}</span><span>${z.n}</span><b>${on?"✓":"·"}</b></div>`}).join("")}</div></div>`;
+  }
+  document.getElementById("sheetHost").innerHTML=`<div class="sheet" id="sheet"><div class="page">
+    <div class="page-hd"><div class="mot">${def.ic}</div>
+      <div><h2>${def.name}</h2><div class="sci" style="font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase">${def.cat} · ${x.erreicht}/${x.slots.length} Stufen</div></div>
+      <button class="close" data-act="close">✕</button></div>
+    <div class="sec"><h3>Stufen</h3>${stufen}</div>${liste}
+    <div class="sec" style="border:0;text-align:right"><button class="smallbtn" data-act="close">Schließen</button></div>
+  </div></div>`;
+  document.body.style.overflow="hidden";
+  document.getElementById("sheet").addEventListener("click",e=>{
+    if(e.target.id==="sheet"||e.target.closest('[data-act="close"]')){
+      document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";}});
+}
+
+/* ====== Events ====== */
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
+  tab=b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(z=>z.setAttribute("aria-selected",z===b));
+  ["dex","log","ach","prof","data"].forEach(t=>document.getElementById("tab-"+t).hidden=(t!==tab));
+  render();window.scrollTo(0,0);}));
+document.getElementById("grid").addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openSheet(c.dataset.id);});
+document.getElementById("log").addEventListener("click",e=>{const c=e.target.closest(".eintrag");if(c)openSheet(c.dataset.id);});
+document.getElementById("achList").addEventListener("click",e=>{const b=e.target.closest("[data-grp]");if(b)openAchSheet(b.dataset.grp);});
+document.getElementById("achFilters").addEventListener("click",e=>{const b=e.target.closest("[data-af]");if(!b)return;
+  aFilter=b.dataset.af;document.querySelectorAll("#achFilters [data-af]").forEach(z=>z.setAttribute("aria-pressed",z===b));renderAch();});
+document.getElementById("achKat").addEventListener("click",e=>{const b=e.target.closest("[data-ak]");if(!b)return;
+  aKat=b.dataset.ak;document.querySelectorAll("#achKat [data-ak]").forEach(z=>z.setAttribute("aria-pressed",z===b));renderAch();});
+document.getElementById("habFilters").addEventListener("click",e=>{const b=e.target.closest("[data-h]");if(!b)return;
+  hFilter=b.dataset.h;document.querySelectorAll("#habFilters [data-h]").forEach(z=>z.setAttribute("aria-pressed",z===b));renderDex();});
+document.querySelectorAll('.filters [data-f]').forEach(b=>b.addEventListener("click",()=>{
+  filter=b.dataset.f;document.querySelectorAll('.filters [data-f]').forEach(z=>z.setAttribute("aria-pressed",z===b));renderDex();}));
+document.getElementById("viewToggle").addEventListener("click",()=>{
+  state.view=state.view==="liste"?"kachel":"liste";save();renderDex();});
+document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();renderDex();});
+document.getElementById("nameIn").addEventListener("input",e=>{state.name=e.target.value;save();renderKopf();});
+document.getElementById("profBody").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.flair!==undefined){state.flair=b.dataset.flair;save();renderProf();renderKopf();return;}
+  if(b.dataset.fs){state.fs=+b.dataset.fs;save();schrift();renderProf();return;}});
+document.getElementById("expBtn").addEventListener("click",()=>{
+  const b=new Blob([JSON.stringify(state,null,1)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download="feldbuch-"+new Date().toISOString().slice(0,10)+".json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);});
+document.getElementById("impBtn").addEventListener("click",()=>document.getElementById("impFile").click());
+document.getElementById("impFile").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;const fr=new FileReader();
+  fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o||typeof o!=="object"||!o.d)throw 0;
+    state=Object.assign({name:"",flair:"",view:"kachel",fs:1,d:{}},o);save();
+    document.getElementById("nameIn").value=state.name||"";schrift();render();toast("Daten geladen.");}
+    catch(err){toast("Datei passt nicht. Bitte eine Export-Datei wählen.");}};
+  fr.readAsText(f);e.target.value="";});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(!confirm("Alle Einträge, Notizen und Fotos löschen? Das lässt sich nicht rückgängig machen."))return;
+  state={name:"",flair:"",view:"kachel",fs:1,d:{}};save();document.getElementById("nameIn").value="";render();toast("Alles gelöscht.");});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
+  if(openId){closeSheet();return;}
+  if(document.getElementById("sheet")){document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";}});
+function schrift(){const f=+state.fs||1;document.body.style.zoom=f===1?"":f;
+  if(document.body.style.zoom==="")document.body.style.fontSize=f===1?"":(f*100)+"%";}
+
+/* ====== Start ====== */
+if("serviceWorker" in navigator && location.protocol==="https:")
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+load();
+try{localStorage.setItem(KEY+".t","1");localStorage.removeItem(KEY+".t");}catch(e){memOnly=true;}
+document.getElementById("nameIn").value=state.name||"";
+schrift(); render();
+</script>
+</body>
+</html>
