@@ -207,6 +207,8 @@ input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
       <div class="filters">
         <input id="search" placeholder="Art suchen…" autocomplete="off">
         <button class="chip" id="viewToggle">Liste</button>
+      </div>
+      <div class="filters">
         <button class="chip" data-f="all" aria-pressed="true">Alle</button>
         <button class="chip" data-f="seen" aria-pressed="false">Gesehen</button>
         <button class="chip" data-f="open" aria-pressed="false">Offen</button>
@@ -227,7 +229,8 @@ input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
       <div id="storeWarn"></div>
       <p class="note">Alles bleibt lokal auf diesem Gerät. Für Backups und Gerätewechsel: exportieren.</p>
       <div class="rowbtns">
-        <button class="smallbtn" id="expBtn">Daten exportieren</button>
+        <button class="smallbtn" id="expBtn">Export ohne Fotos</button>
+        <button class="smallbtn" id="expFotoBtn">Export mit Fotos</button>
         <button class="smallbtn" id="impBtn">Daten importieren</button>
         <button class="smallbtn danger" id="resetBtn">Alles löschen</button>
       </div>
@@ -245,26 +248,44 @@ const REGN={EU:"Europa",NAF:"Nordafrika",MEA:"Vorderasien",AFR:"Afrika südlich 
  SAS:"Süd- und Zentralasien",SEA:"Südostasien",AUS:"Australien und Ozeanien",NAM:"Nordamerika",
  MAM:"Mittelamerika und Karibik",SAM:"Südamerika",ARK:"Arktis",ANT:"Antarktis",OZE:"Weltmeere"};
 const REGP={
- NAM:"M108,96 L205,58 L300,74 L286,150 L246,176 L252,232 L214,226 L196,174 L138,150 Z",
- MAM:"M214,236 L266,246 L302,276 L280,294 L244,270 L214,258 Z",
- SAM:"M268,300 L332,294 L356,346 L330,412 L300,456 L282,410 L268,350 Z",
- EU:"M438,112 L490,70 L562,80 L566,140 L520,166 L468,160 Z",
- NAF:"M444,176 L572,172 L582,226 L470,232 L440,206 Z",
- MEA:"M574,168 L642,170 L650,216 L592,234 L578,200 Z",
- AFR:"M470,242 L588,240 L576,322 L530,402 L494,360 L478,300 Z",
- NAS:"M568,60 L762,44 L882,70 L870,126 L740,142 L640,136 L574,116 Z",
- SAS:"M618,146 L722,150 L744,206 L700,260 L658,230 L626,190 Z",
- SEA:"M748,216 L832,204 L864,252 L830,302 L780,282 L752,246 Z",
- AUS:"M800,320 L902,304 L936,360 L900,416 L830,406 L798,360 Z",
- ARK:"M70,10 L930,10 L930,44 L70,44 Z",
- ANT:"M70,438 L930,438 L930,470 L70,470 Z"};
+ NAM:"M104,128 C112,100 148,74 198,66 C248,58 292,70 302,88 C312,106 292,118 278,130 C264,142 258,160 254,178 C250,198 256,216 248,228 C238,240 222,232 214,216 C204,196 196,176 180,164 C158,148 120,152 104,128 Z",
+ MAM:"M216,238 C232,236 252,244 268,254 C286,264 302,272 300,284 C298,296 284,292 270,286 C252,278 234,266 220,256 C212,250 208,240 216,238 Z",
+ SAM:"M272,302 C288,292 322,290 342,300 C360,310 360,332 352,350 C344,368 336,392 326,414 C316,436 304,458 292,454 C282,450 280,428 276,406 C272,382 264,356 264,334 C264,316 264,308 272,302 Z",
+ EU:"M438,120 C440,98 462,76 492,70 C524,64 556,72 564,86 C572,102 564,124 556,140 C548,156 526,166 502,164 C476,162 452,152 444,140 C438,132 437,126 438,120 Z",
+ NAF:"M442,180 C452,172 490,170 524,170 C556,170 578,174 582,190 C586,206 576,222 564,228 C548,236 500,236 474,232 C452,228 438,214 438,200 C438,190 438,184 442,180 Z",
+ MEA:"M576,172 C592,166 624,166 642,172 C656,178 654,196 646,208 C638,222 616,232 600,232 C586,232 578,220 576,206 C574,190 572,176 576,172 Z",
+ AFR:"M472,244 C492,238 556,238 580,244 C596,248 588,272 582,294 C576,318 562,342 548,366 C534,390 520,410 506,406 C492,402 486,378 480,354 C474,326 468,296 466,272 C465,256 464,246 472,244 Z",
+ NAS:"M572,64 C600,48 690,40 762,44 C834,48 884,58 884,76 C884,94 860,112 820,122 C776,134 704,142 652,138 C606,134 578,124 570,108 C564,94 564,72 572,64 Z",
+ SAS:"M614,148 C636,142 700,142 726,150 C746,156 748,174 742,190 C734,210 720,232 706,250 C694,266 680,268 672,254 C662,236 646,214 632,194 C620,176 606,154 614,148 Z",
+ SEA:"M746,214 C762,204 812,200 840,208 C862,214 870,234 862,252 C854,272 832,296 812,300 C792,304 772,288 760,270 C748,252 738,224 746,214 Z",
+ AUS:"M802,330 C818,312 872,300 906,310 C934,318 942,346 934,370 C926,394 898,416 866,418 C834,420 806,404 796,380 C788,358 790,342 802,330 Z",
+ ARK:"M80,12 C300,4 700,4 920,12 C928,22 928,34 920,44 C700,52 300,52 80,44 C72,34 72,22 80,12 Z",
+ ANT:"M80,438 C300,430 700,430 920,438 C928,448 928,460 920,470 C700,478 300,478 80,470 C72,460 72,448 80,438 Z"};
 function karte(regs){
-  const an=r=>regs.includes(r);
-  const flaechen=Object.entries(REGP).map(([k,d])=>
-    `<path d="${d}" fill="${an(k)?"var(--stamp)":"rgba(27,46,36,.13)"}" stroke="rgba(27,46,36,.35)" stroke-width="1.5"/>`).join("");
-  return `<svg viewBox="0 0 1000 480" style="width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:2px;background:${an("OZE")?"rgba(46,110,91,.22)":"var(--paper3)"}" role="img" aria-label="Verbreitung">
-    ${an("OZE")?'<rect width="1000" height="480" fill="none" stroke="var(--stamp)" stroke-width="6" stroke-dasharray="10 8" opacity=".5"/>':""}
-    ${flaechen}</svg>`;
+  const an=r=>(regs||[]).includes(r), meer=an("OZE");
+  const flaechen=Object.entries(REGP).map(([k,d])=>{
+    const on=an(k);
+    return `<path d="${d}" fill="${on?"var(--stamp)":"rgba(27,46,36,.11)"}" stroke="${on?"var(--stamp)":"rgba(27,46,36,.3)"}" stroke-width="${on?2.5:1.2}" stroke-linejoin="round"/>`+
+      (on?`<path d="${d}" fill="none" stroke="var(--paper3)" stroke-width="1" stroke-linejoin="round" opacity=".55"/>`:"");
+  }).join("");
+  return `<svg viewBox="0 0 1000 490" style="width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:2px;background:var(--paper3)" role="img" aria-label="Verbreitung">
+    <defs>
+      <pattern id="welle" width="26" height="14" patternUnits="userSpaceOnUse">
+        <path d="M0,10 Q6.5,3 13,10 T26,10" fill="none" stroke="var(--stamp)" stroke-width="1.4" opacity="${meer?".55":".16"}"/>
+      </pattern>
+    </defs>
+    <rect width="1000" height="490" fill="url(#welle)"/>
+    <g opacity=".22" stroke="rgba(27,46,36,.9)" stroke-width="1" fill="none">
+      <line x1="40" y1="245" x2="960" y2="245" stroke-dasharray="9 7"/>
+      <line x1="40" y1="180" x2="960" y2="180" stroke-dasharray="3 9"/>
+      <line x1="40" y1="310" x2="960" y2="310" stroke-dasharray="3 9"/>
+      <line x1="500" y1="20" x2="500" y2="470" stroke-dasharray="3 11"/>
+      <line x1="250" y1="40" x2="250" y2="450" stroke-dasharray="3 11"/>
+      <line x1="750" y1="40" x2="750" y2="450" stroke-dasharray="3 11"/>
+    </g>
+    ${flaechen}
+    <text x="960" y="240" text-anchor="end" font-family="ui-monospace,monospace" font-size="15" fill="rgba(27,46,36,.45)" letter-spacing="2">ÄQUATOR</text>
+  </svg>`;
 }
 const HAB=["Wald","Offenland","Gebirge","Siedlung","Süßwasser","Küste & Meer","Savanne","Regenwald","Trockengebiet","Polar & Tundra"];
 const ARTEN=[
@@ -412,6 +433,16 @@ const ARTEN=[
 {id:"manta",n:"Riffmanta",s:"Mobula alfredi",o:"Rochen",fa:"Teufelsrochen",h:["Küste & Meer"],t:3,m:"🐠",r:["OZE"],tip:"An Putzerstationen kreisend, oft mehrere hintereinander."},
 {id:"gruenemeeresschildkroete",n:"Grüne Meeresschildkröte",s:"Chelonia mydas",o:"Schildkröten",fa:"Meeresschildkröten",h:["Küste & Meer"],t:2,m:"🐢",r:["OZE"],tip:"Weidet Seegras im Flachwasser; taucht zum Luftholen auf."},
 /* --- Nachtrag: heimische Lücken --- */
+{id:"truthahngeier",n:"Truthahngeier",s:"Cathartes aura",o:"Greifvögel",fa:"Neuweltgeier",h:["Offenland","Siedlung","Savanne"],t:1,m:"🦅",r:["NAM","MAM","SAM"],tip:"Der allgegenwärtige Geier Amerikas; kreist mit V-förmig gehaltenen Flügeln und kippelt dabei."},
+{id:"moenchsgrasmuecke",n:"Mönchsgrasmücke",s:"Sylvia atricapilla",o:"Sperlingsvögel",fa:"Grasmücken",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAF","MEA"],tip:"Schwätzender Anfang, dann ein flötender Überschlag. Männchen mit schwarzer, Weibchen mit rotbrauner Kappe."},
+{id:"gartengrasmuecke",n:"Gartengrasmücke",s:"Sylvia borin",o:"Sperlingsvögel",fa:"Grasmücken",h:["Wald","Offenland"],t:2,m:"🐦",r:["EU","NAS","AFR"],tip:"Gleichmäßig plaudernder Gesang ohne Überschlag; völlig unauffällig gefärbt."},
+{id:"zilpzalp",n:"Zilpzalp",s:"Phylloscopus collybita",o:"Sperlingsvögel",fa:"Laubsängerartige",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAF"],tip:"Sagt seinen Namen. Vom Fitis nur am Gesang zu trennen, nicht am Aussehen."},
+{id:"fitis",n:"Fitis",s:"Phylloscopus trochilus",o:"Sperlingsvögel",fa:"Laubsängerartige",h:["Wald","Offenland"],t:2,m:"🐦",r:["EU","NAS","AFR"],tip:"Weiche, abfallende Tonfolge statt des Zilpzalp-Zweiklangs."},
+{id:"goldammer",n:"Goldammer",s:"Emberiza citrinella",o:"Sperlingsvögel",fa:"Ammern",h:["Offenland"],t:1,m:"🐦",r:["EU","NAS"],tip:"„Wie wie wie hab ich dich lieb“ von Hecken an Feldwegen; Männchen leuchtend gelb."},
+{id:"kleiber",n:"Kleiber",s:"Sitta europaea",o:"Sperlingsvögel",fa:"Kleiber",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAS","SAS"],tip:"Der einzige Vogel, der kopfüber den Stamm hinabläuft; lautes „tüit“."},
+{id:"gartenbaumlaeufer",n:"Gartenbaumläufer",s:"Certhia brachydactyla",o:"Sperlingsvögel",fa:"Baumläufer",h:["Wald","Siedlung"],t:2,m:"🐦",r:["EU","NAF"],tip:"Schraubt sich spiralig den Stamm hinauf und fällt dann zum nächsten Baum ab."},
+{id:"sumpfmeise",n:"Sumpfmeise",s:"Poecile palustris",o:"Sperlingsvögel",fa:"Meisen",h:["Wald"],t:2,m:"🐦",r:["EU","NAS"],tip:"Schwarze Kappe mit Glanz, scharfes „pistjä“; trotz des Namens in Laubwald."},
+{id:"moschusente",n:"Moschusente",s:"Cairina moschata",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser","Regenwald"],t:3,m:"🦆",r:["MAM","SAM"],tip:"Nur die Wildform zählt: schwarz mit grünem Glanz und roten Hautwarzen. Weiße Warzenenten am Hof sind Haustiere."},
 {id:"haussperling",n:"Haussperling",s:"Passer domesticus",o:"Sperlingsvögel",fa:"Sperlinge",h:["Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAF","NAM"],tip:"Der Spatz an der Bäckerei; Männchen mit schwarzem Latz."},
 {id:"feldsperling",n:"Feldsperling",s:"Passer montanus",o:"Sperlingsvögel",fa:"Sperlinge",h:["Offenland","Siedlung"],t:1,m:"🐦",r:["EU","NAS","SAS"],tip:"Brauner Scheitel und schwarzer Wangenfleck, Geschlechter gleich."},
 {id:"rabenkraehe",n:"Rabenkrähe",s:"Corvus corone",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Offenland","Siedlung"],t:1,m:"🪶",r:["EU"],tip:"Ganz schwarz; westlich der Elbe die Regel."},
@@ -473,6 +504,40 @@ const ARTEN=[
 {id:"ameise24",n:"24-Stunden-Ameise",s:"Paraponera clavata",o:"Hautflügler",fa:"Ameisen",h:["Regenwald"],t:2,m:"🐜",r:["MAM","SAM"],tip:"Daumennagelgroß, an Baumstämmen; der schmerzhafteste Stich der Insektenwelt."}
 ];
 
+/* ====== Fotospeicher (IndexedDB) ====== */
+const FDB={name:"feldbuch-fotos",store:"fotos"};
+let FOTOS={}, fotoOk=true;
+function idb(){return new Promise((res,rej)=>{
+  try{const r=indexedDB.open(FDB.name,1);
+    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(FDB.store))r.result.createObjectStore(FDB.store);};
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  }catch(e){rej(e);}});}
+async function fotosLaden(){
+  try{const db=await idb();
+    await new Promise(res=>{
+      const st=db.transaction(FDB.store,"readonly").objectStore(FDB.store), q=st.openCursor();
+      FOTOS={};
+      q.onsuccess=e=>{const c=e.target.result; if(c){FOTOS[c.key]=c.value||[];c.continue();}else res();};
+      q.onerror=()=>res();});
+  }catch(e){fotoOk=false;}
+}
+async function fotosSchreiben(id){
+  if(!fotoOk)return;
+  try{const db=await idb();
+    const st=db.transaction(FDB.store,"readwrite").objectStore(FDB.store);
+    const arr=FOTOS[id]||[]; arr.length?st.put(arr,id):st.delete(id);
+  }catch(e){fotoOk=false;toast("Fotos konnten nicht gespeichert werden.");}
+}
+const fotos=id=>FOTOS[id]||[];
+async function fotosUmziehen(){
+  let n=0;
+  Object.entries(state.d||{}).forEach(([k,r])=>{
+    if(r.photos&&r.photos.length){FOTOS[k]=(FOTOS[k]||[]).concat(r.photos);r.photos=[];n++;}
+  });
+  if(n){for(const k of Object.keys(FOTOS))await fotosSchreiben(k); save();
+    toast(n+" Einträge mit Fotos in den großen Speicher verschoben.");}
+}
+
 /* ====== Speicher ====== */
 const KEY="feldbuch.v1";
 let memOnly=false, state={name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}};
@@ -490,7 +555,7 @@ const byId=i=>alle().find(x=>x.id===i);
 const istEigen=i=>(state.custom||[]).some(z=>z.id===i);
 const rec=i=>state.d[i]||null;
 const gesehen=()=>alle().filter(x=>rec(x.id)&&rec(x.id).v);
-const photoCount=()=>Object.values(state.d).reduce((s,r)=>s+((r.photos||[]).length),0);
+const photoCount=()=>Object.values(FOTOS).reduce((s,a)=>s+((a||[]).length),0);
 const habCount=h=>gesehen().filter(x=>x.h.includes(h)).length;
 const methCount=m=>gesehen().filter(x=>(rec(x.id).meth||[]).includes(m)).length;
 const nurMeth=m=>gesehen().filter(x=>{const q=rec(x.id).meth||[];return q.length===1&&q[0]===m}).length;
@@ -735,9 +800,9 @@ function renderData(){
   document.getElementById("storeWarn").innerHTML=memOnly
     ?'<div class="warn">Dieser Browser speichert gerade nichts dauerhaft. Prüfe, ob du im privaten Modus bist.</div>':"";
   const st=(n,l)=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
-  const bytes=new Blob([JSON.stringify(state)]).size;
+  const bytes=new Blob([JSON.stringify(state)]).size, fb=new Blob([JSON.stringify(FOTOS)]).size;
   document.getElementById("dataStats").innerHTML=st(gesehen().length,"Einträge")+st(photoCount(),"Fotos")+
-    st((bytes/1048576).toFixed(2)+" MB","Belegter Platz");
+    st((bytes/1024).toFixed(0)+" KB","Texte")+st((fb/1048576).toFixed(2)+" MB","Fotos");
 }
 function render(){renderKopf();({dex:renderDex,log:renderLog,ach:renderAch,prof:renderProf,data:renderData})[tab]();}
 
@@ -761,7 +826,7 @@ function naechsterOrden(){
 
 /* ====== Artseite ====== */
 let openId=null;
-const MAXFOTOS=3;
+const MAXFOTOS=8;
 function ensure(i){if(!state.d[i])state.d[i]={v:0,first:"",count:1,meth:[],ort:"",note:"",photos:[]};
   const r=state.d[i];r.meth=r.meth||[];r.photos=r.photos||[];return r;}
 const esc=s=>String(s).replace(/"/g,"&quot;");
@@ -798,10 +863,10 @@ function openSheet(id){
       </div>
     </div>
     <div class="sec" ${r.v?"":'style="opacity:.45;pointer-events:none"'}>
-      <h3>Belege · ${r.photos.length}/${MAXFOTOS}</h3>
+      <h3>Belege · ${fotos(id).length}/${MAXFOTOS}</h3>
       <div class="photos">
-        ${r.photos.map((p,i)=>`<div class="slot"><img src="${p}" alt=""><button class="rm" data-rm="${i}">✕</button></div>`).join("")}
-        ${r.photos.length<MAXFOTOS?`<button class="slot" data-add="1">+ Fotos</button>`:""}
+        ${fotos(id).map((p,i)=>`<div class="slot"><img src="${p}" alt=""><button class="rm" data-rm="${i}">✕</button></div>`).join("")}
+        ${fotos(id).length<MAXFOTOS?`<button class="slot" data-add="1">+ Fotos</button>`:""}
       </div>
       <div class="hint">Mehrere Bilder auf einmal möglich; sie werden verkleinert und bleiben auf diesem Gerät.</div>
     </div>
@@ -821,7 +886,7 @@ function openSheet(id){
   document.body.style.overflow="hidden"; bindSheet();
 }
 function prune(i){const r=state.d[i];if(!r)return;
-  if(!r.v&&!r.note&&!r.ort&&!r.meth.length&&!r.photos.length){delete state.d[i];save();}}
+  if(!r.v&&!r.note&&!r.ort&&!r.meth.length&&!fotos(i).length){delete state.d[i];save();}}
 function closeSheet(){prune(openId);document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";openId=null;render();}
 function shrink(file,max,q,cb){
   const fr=new FileReader();
@@ -861,11 +926,13 @@ function bindSheet(){
       save();openSheet(openId);renderKopf();return;}
     if(b.dataset.meth){const m=b.dataset.meth,i=r.meth.indexOf(m);
       i>-1?r.meth.splice(i,1):r.meth.push(m);save();openSheet(openId);renderKopf();return;}
-    if(b.dataset.rm!==undefined){r.photos.splice(+b.dataset.rm,1);save();openSheet(openId);return;}
-    if(b.dataset.add!==undefined){pickPhotos(true,900,.6,u=>{
-        const frei=MAXFOTOS-r.photos.length;
+    if(b.dataset.rm!==undefined){
+      (FOTOS[openId]||[]).splice(+b.dataset.rm,1); fotosSchreiben(openId); openSheet(openId); return;}
+    if(b.dataset.add!==undefined){pickPhotos(true,700,.5,u=>{
+        FOTOS[openId]=FOTOS[openId]||[];
+        const frei=MAXFOTOS-FOTOS[openId].length;
         if(u.length>frei)toast("Nur "+frei+" Bild(er) passen noch rein.");
-        r.photos.push(...u.slice(0,frei));save();openSheet(openId);});return;}
+        FOTOS[openId].push(...u.slice(0,frei)); fotosSchreiben(openId); openSheet(openId);});return;}
   });
   const onEdit=e=>{
     const vor=ordenStand(); setTimeout(()=>ordenPruefen(vor),0);
@@ -938,20 +1005,30 @@ document.getElementById("profBody").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   if(b.dataset.flair!==undefined){state.flair=b.dataset.flair;save();renderProf();renderKopf();return;}
   if(b.dataset.fs){state.fs=+b.dataset.fs;save();schrift();renderProf();return;}});
-document.getElementById("expBtn").addEventListener("click",()=>{
-  const b=new Blob([JSON.stringify(state,null,1)],{type:"application/json"}),a=document.createElement("a");
-  a.href=URL.createObjectURL(b);a.download="feldbuch-"+new Date().toISOString().slice(0,10)+".json";a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);});
+function exportieren(mitFotos){
+  const daten=mitFotos?Object.assign({},state,{fotos:FOTOS}):state;
+  const b=new Blob([JSON.stringify(daten)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);
+  a.download="feldbuch"+(mitFotos?"-mit-fotos":"")+"-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+}
+document.getElementById("expBtn").addEventListener("click",()=>exportieren(false));
+document.getElementById("expFotoBtn").addEventListener("click",()=>exportieren(true));
 document.getElementById("impBtn").addEventListener("click",()=>document.getElementById("impFile").click());
 document.getElementById("impFile").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;const fr=new FileReader();
-  fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o||typeof o!=="object"||!o.d)throw 0;
+  fr.onload=async()=>{try{const o=JSON.parse(fr.result);if(!o||typeof o!=="object"||!o.d)throw 0;
+    const mit=o.fotos&&typeof o.fotos==="object"; const bilder=mit?o.fotos:null; delete o.fotos;
     state=Object.assign({name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}},o);save();
-    document.getElementById("nameIn").value=state.name||"";schrift();render();toast("Daten geladen.");}
+    if(bilder){FOTOS=bilder; for(const k of Object.keys(FOTOS))await fotosSchreiben(k);}
+    await fotosUmziehen();
+    document.getElementById("nameIn").value=state.name||"";schrift();render();
+    toast(mit?"Daten samt Fotos geladen.":"Daten geladen (ohne Fotos).");}
     catch(err){toast("Datei passt nicht. Bitte eine Export-Datei wählen.");}};
   fr.readAsText(f);e.target.value="";});
 document.getElementById("resetBtn").addEventListener("click",()=>{
   if(!confirm("Alle Einträge, Notizen und Fotos löschen? Das lässt sich nicht rückgängig machen."))return;
+  const keys=Object.keys(FOTOS); FOTOS={}; keys.forEach(k=>fotosSchreiben(k));
   state={name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}};save();document.getElementById("nameIn").value="";render();toast("Alles gelöscht.");});
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(openId){closeSheet();return;}
@@ -966,6 +1043,7 @@ load();
 try{localStorage.setItem(KEY+".t","1");localStorage.removeItem(KEY+".t");}catch(e){memOnly=true;}
 document.getElementById("nameIn").value=state.name||"";
 schrift(); render();
+(async()=>{ await fotosLaden(); await fotosUmziehen(); render(); })();
 </script>
 </body>
 </html>
