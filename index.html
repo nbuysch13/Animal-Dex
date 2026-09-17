@@ -212,6 +212,8 @@ input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
         <button class="chip" data-f="open" aria-pressed="false">Offen</button>
       </div>
       <div class="filters" id="habFilters"></div>
+      <div class="filters" id="sortFilters"></div>
+      <div class="rowbtns" style="margin:0 0 10px"><button class="smallbtn" id="addArt">+ Eigene Art</button></div>
       <div class="grid" id="grid"></div>
     </section>
     <section id="tab-log" hidden><div class="stats" id="logStats"></div><div id="log"></div></section>
@@ -239,156 +241,241 @@ input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
 <script>
 /* ====== ARTEN ======
  id · n Name · s wissenschaftlich · o Ordnung · fa Familie · h Lebensräume · t Häufigkeit · m Motiv · tip Hinweis */
+const REGN={EU:"Europa",NAF:"Nordafrika",MEA:"Vorderasien",AFR:"Afrika südlich der Sahara",NAS:"Nordasien",
+ SAS:"Süd- und Zentralasien",SEA:"Südostasien",AUS:"Australien und Ozeanien",NAM:"Nordamerika",
+ MAM:"Mittelamerika und Karibik",SAM:"Südamerika",ARK:"Arktis",ANT:"Antarktis",OZE:"Weltmeere"};
+const REGP={
+ NAM:"M108,96 L205,58 L300,74 L286,150 L246,176 L252,232 L214,226 L196,174 L138,150 Z",
+ MAM:"M214,236 L266,246 L302,276 L280,294 L244,270 L214,258 Z",
+ SAM:"M268,300 L332,294 L356,346 L330,412 L300,456 L282,410 L268,350 Z",
+ EU:"M438,112 L490,70 L562,80 L566,140 L520,166 L468,160 Z",
+ NAF:"M444,176 L572,172 L582,226 L470,232 L440,206 Z",
+ MEA:"M574,168 L642,170 L650,216 L592,234 L578,200 Z",
+ AFR:"M470,242 L588,240 L576,322 L530,402 L494,360 L478,300 Z",
+ NAS:"M568,60 L762,44 L882,70 L870,126 L740,142 L640,136 L574,116 Z",
+ SAS:"M618,146 L722,150 L744,206 L700,260 L658,230 L626,190 Z",
+ SEA:"M748,216 L832,204 L864,252 L830,302 L780,282 L752,246 Z",
+ AUS:"M800,320 L902,304 L936,360 L900,416 L830,406 L798,360 Z",
+ ARK:"M70,10 L930,10 L930,44 L70,44 Z",
+ ANT:"M70,438 L930,438 L930,470 L70,470 Z"};
+function karte(regs){
+  const an=r=>regs.includes(r);
+  const flaechen=Object.entries(REGP).map(([k,d])=>
+    `<path d="${d}" fill="${an(k)?"var(--stamp)":"rgba(27,46,36,.13)"}" stroke="rgba(27,46,36,.35)" stroke-width="1.5"/>`).join("");
+  return `<svg viewBox="0 0 1000 480" style="width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:2px;background:${an("OZE")?"rgba(46,110,91,.22)":"var(--paper3)"}" role="img" aria-label="Verbreitung">
+    ${an("OZE")?'<rect width="1000" height="480" fill="none" stroke="var(--stamp)" stroke-width="6" stroke-dasharray="10 8" opacity=".5"/>':""}
+    ${flaechen}</svg>`;
+}
 const HAB=["Wald","Offenland","Gebirge","Siedlung","Süßwasser","Küste & Meer","Savanne","Regenwald","Trockengebiet","Polar & Tundra"];
 const ARTEN=[
 /* --- Europa: Säugetiere --- */
-{id:"reh",n:"Reh",s:"Capreolus capreolus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:1,m:"🦌",tip:"Dämmerung am Waldrand; weißer Spiegel am Hinterteil."},
-{id:"rothirsch",n:"Rothirsch",s:"Cervus elaphus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Gebirge"],t:2,m:"🦌",tip:"Im September an der Brunft zu hören, oft bevor man ihn sieht."},
-{id:"damhirsch",n:"Damhirsch",s:"Dama dama",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:2,m:"🦌",tip:"Schaufelgeweih und geflecktes Fell auch im Winter."},
-{id:"wildschwein",n:"Wildschwein",s:"Sus scrofa",o:"Paarhufer",fa:"Echte Schweine",h:["Wald","Offenland"],t:2,m:"🐗",tip:"Wühlstellen und Suhlen sind oft der erste Nachweis."},
-{id:"gaemse",n:"Gämse",s:"Rupicapra rupicapra",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:2,m:"🐐",tip:"Hakenförmige Hörner, oberhalb der Baumgrenze."},
-{id:"steinbock",n:"Alpensteinbock",s:"Capra ibex",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:3,m:"🐐",tip:"Im Frühsommer am Vormittag auf Graten; erstaunlich zutraulich."},
-{id:"mufflon",n:"Mufflon",s:"Ovis musimon",o:"Paarhufer",fa:"Hornträger",h:["Wald","Gebirge"],t:3,m:"🐏",tip:"Eingeführtes Wildschaf, Schneckenhörner beim Widder."},
-{id:"rotfuchs",n:"Rotfuchs",s:"Vulpes vulpes",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland","Siedlung"],t:1,m:"🦊",tip:"Auch mitten in der Stadt; nachts auf Straßen und Friedhöfen."},
-{id:"wolf",n:"Wolf",s:"Canis lupus",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland"],t:3,m:"🐺",tip:"Meist nur Trittsiegel oder Losung; Sichtung ist reines Glück."},
-{id:"dachs",n:"Dachs",s:"Meles meles",o:"Raubtiere",fa:"Marder",h:["Wald"],t:2,m:"🦡",tip:"Baue mit mehreren Röhren; abends am Ausgang warten."},
-{id:"steinmarder",n:"Steinmarder",s:"Martes foina",o:"Raubtiere",fa:"Marder",h:["Siedlung","Wald"],t:2,m:"🐾",tip:"Weißer, gegabelter Kehlfleck; oft auf Dachböden."},
-{id:"baummarder",n:"Baummarder",s:"Martes martes",o:"Raubtiere",fa:"Marder",h:["Wald"],t:3,m:"🐾",tip:"Gelblicher Kehlfleck, scheuer und waldgebundener als der Steinmarder."},
-{id:"hermelin",n:"Hermelin",s:"Mustela erminea",o:"Raubtiere",fa:"Marder",h:["Offenland","Gebirge"],t:3,m:"🐾",tip:"Schwarze Schwanzspitze, im Winter weiß."},
-{id:"fischotter",n:"Fischotter",s:"Lutra lutra",o:"Raubtiere",fa:"Marder",h:["Süßwasser"],t:3,m:"🦦",tip:"Losung auf Steinen an Brücken; Sichtung meist in der Dämmerung."},
-{id:"wildkatze",n:"Europäische Wildkatze",s:"Felis silvestris",o:"Raubtiere",fa:"Katzen",h:["Wald"],t:3,m:"🐈",tip:"Buschiger Ringelschwanz mit stumpfem Ende, verwaschene Zeichnung."},
-{id:"luchs",n:"Eurasischer Luchs",s:"Lynx lynx",o:"Raubtiere",fa:"Katzen",h:["Wald","Gebirge"],t:3,m:"🐆",tip:"Pinselohren und Stummelschwanz; meist nur an Rissen nachweisbar."},
-{id:"waschbaer",n:"Waschbär",s:"Procyon lotor",o:"Raubtiere",fa:"Kleinbären",h:["Wald","Siedlung"],t:2,m:"🦝",tip:"Eingeführt; nachts an Mülltonnen und Wasserläufen."},
-{id:"seehund",n:"Seehund",s:"Phoca vitulina",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:2,m:"🦭",tip:"Bei Niedrigwasser auf Sandbänken der Nordsee."},
-{id:"kegelrobbe",n:"Kegelrobbe",s:"Halichoerus grypus",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:3,m:"🦭",tip:"Deutlich größer als der Seehund, mit gerader Schnauzenlinie."},
-{id:"schweinswal",n:"Schweinswal",s:"Phocoena phocoena",o:"Wale",fa:"Schweinswale",h:["Küste & Meer"],t:3,m:"🐬",tip:"Kleine dreieckige Finne vor Sylt und Fehmarn, bei ruhiger See."},
-{id:"biber",n:"Europäischer Biber",s:"Castor fiber",o:"Nagetiere",fa:"Biber",h:["Süßwasser"],t:2,m:"🦫",tip:"Nagespuren und Dämme das ganze Jahr, das Tier selbst abends."},
-{id:"eichhoernchen",n:"Eichhörnchen",s:"Sciurus vulgaris",o:"Nagetiere",fa:"Hörnchen",h:["Wald","Siedlung"],t:1,m:"🐿️",tip:"Rot bis fast schwarz; Fichtenzapfen mit abgenagten Schuppen."},
-{id:"siebenschlaefer",n:"Siebenschläfer",s:"Glis glis",o:"Nagetiere",fa:"Bilche",h:["Wald","Siedlung"],t:3,m:"🐁",tip:"Nachts in Buchenwäldern und auf Dachböden, quiekende Rufe."},
-{id:"feldhase",n:"Feldhase",s:"Lepus europaeus",o:"Hasenartige",fa:"Hasen",h:["Offenland"],t:1,m:"🐇",tip:"Längere Löffel mit schwarzer Spitze, Einzelgänger im Acker."},
-{id:"wildkaninchen",n:"Wildkaninchen",s:"Oryctolagus cuniculus",o:"Hasenartige",fa:"Hasen",h:["Offenland","Siedlung"],t:1,m:"🐇",tip:"Kleiner als der Hase, in Kolonien mit Erdbauen."},
-{id:"igel",n:"Braunbrustigel",s:"Erinaceus europaeus",o:"Insektenfresser",fa:"Igel",h:["Siedlung","Wald"],t:1,m:"🦔",tip:"Nachts im Garten, schnaufend und erstaunlich laut."},
-{id:"maulwurf",n:"Maulwurf",s:"Talpa europaea",o:"Insektenfresser",fa:"Maulwürfe",h:["Offenland","Siedlung"],t:2,m:"⛏️",tip:"Fast immer nur als Hügel; das Tier sieht man kaum je."},
-{id:"zwergfledermaus",n:"Zwergfledermaus",s:"Pipistrellus pipistrellus",o:"Fledermäuse",fa:"Glattnasen",h:["Siedlung","Wald"],t:1,m:"🦇",tip:"Am Detektor bei 45 kHz; jagt um Straßenlaternen."},
-{id:"abendsegler",n:"Großer Abendsegler",s:"Nyctalus noctula",o:"Fledermäuse",fa:"Glattnasen",h:["Wald","Siedlung"],t:2,m:"🦇",tip:"Fliegt hoch und früh, oft noch bei Tageslicht; 20 kHz."},
+{id:"reh",n:"Reh",s:"Capreolus capreolus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:1,m:"🦌",r:["EU"],tip:"Dämmerung am Waldrand; weißer Spiegel am Hinterteil."},
+{id:"rothirsch",n:"Rothirsch",s:"Cervus elaphus",o:"Paarhufer",fa:"Hirsche",h:["Wald","Gebirge"],t:2,m:"🦌",r:["EU","NAS","NAF"],tip:"Im September an der Brunft zu hören, oft bevor man ihn sieht."},
+{id:"damhirsch",n:"Damhirsch",s:"Dama dama",o:"Paarhufer",fa:"Hirsche",h:["Wald","Offenland"],t:2,m:"🦌",r:["EU","MEA"],tip:"Schaufelgeweih und geflecktes Fell auch im Winter."},
+{id:"wildschwein",n:"Wildschwein",s:"Sus scrofa",o:"Paarhufer",fa:"Echte Schweine",h:["Wald","Offenland"],t:2,m:"🐗",r:["EU","NAS","SAS","SEA","NAF"],tip:"Wühlstellen und Suhlen sind oft der erste Nachweis."},
+{id:"gaemse",n:"Gämse",s:"Rupicapra rupicapra",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:2,m:"🐐",r:["EU"],tip:"Hakenförmige Hörner, oberhalb der Baumgrenze."},
+{id:"steinbock",n:"Alpensteinbock",s:"Capra ibex",o:"Paarhufer",fa:"Hornträger",h:["Gebirge"],t:3,m:"🐐",r:["EU"],tip:"Im Frühsommer am Vormittag auf Graten; erstaunlich zutraulich."},
+{id:"mufflon",n:"Mufflon",s:"Ovis musimon",o:"Paarhufer",fa:"Hornträger",h:["Wald","Gebirge"],t:3,m:"🐏",r:["EU","MEA"],tip:"Eingeführtes Wildschaf, Schneckenhörner beim Widder."},
+{id:"rotfuchs",n:"Rotfuchs",s:"Vulpes vulpes",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland","Siedlung"],t:1,m:"🦊",r:["EU","NAS","NAM","SAS","NAF","AUS"],tip:"Auch mitten in der Stadt; nachts auf Straßen und Friedhöfen."},
+{id:"wolf",n:"Wolf",s:"Canis lupus",o:"Raubtiere",fa:"Hunde",h:["Wald","Offenland"],t:3,m:"🐺",r:["EU","NAS","NAM","SAS"],tip:"Meist nur Trittsiegel oder Losung; Sichtung ist reines Glück."},
+{id:"dachs",n:"Dachs",s:"Meles meles",o:"Raubtiere",fa:"Marder",h:["Wald"],t:2,m:"🦡",r:["EU","NAS"],tip:"Baue mit mehreren Röhren; abends am Ausgang warten."},
+{id:"steinmarder",n:"Steinmarder",s:"Martes foina",o:"Raubtiere",fa:"Marder",h:["Siedlung","Wald"],t:2,m:"🐾",r:["EU","SAS"],tip:"Weißer, gegabelter Kehlfleck; oft auf Dachböden."},
+{id:"baummarder",n:"Baummarder",s:"Martes martes",o:"Raubtiere",fa:"Marder",h:["Wald"],t:3,m:"🐾",r:["EU"],tip:"Gelblicher Kehlfleck, scheuer und waldgebundener als der Steinmarder."},
+{id:"hermelin",n:"Hermelin",s:"Mustela erminea",o:"Raubtiere",fa:"Marder",h:["Offenland","Gebirge"],t:3,m:"🐾",r:["EU","NAS","NAM","ARK"],tip:"Schwarze Schwanzspitze, im Winter weiß."},
+{id:"fischotter",n:"Fischotter",s:"Lutra lutra",o:"Raubtiere",fa:"Marder",h:["Süßwasser"],t:3,m:"🦦",r:["EU","NAS","SAS","SEA","NAF"],tip:"Losung auf Steinen an Brücken; Sichtung meist in der Dämmerung."},
+{id:"wildkatze",n:"Europäische Wildkatze",s:"Felis silvestris",o:"Raubtiere",fa:"Katzen",h:["Wald"],t:3,m:"🐈",r:["EU","NAF","MEA"],tip:"Buschiger Ringelschwanz mit stumpfem Ende, verwaschene Zeichnung."},
+{id:"luchs",n:"Eurasischer Luchs",s:"Lynx lynx",o:"Raubtiere",fa:"Katzen",h:["Wald","Gebirge"],t:3,m:"🐆",r:["EU","NAS"],tip:"Pinselohren und Stummelschwanz; meist nur an Rissen nachweisbar."},
+{id:"waschbaer",n:"Waschbär",s:"Procyon lotor",o:"Raubtiere",fa:"Kleinbären",h:["Wald","Siedlung"],t:2,m:"🦝",r:["NAM","EU"],tip:"Eingeführt; nachts an Mülltonnen und Wasserläufen."},
+{id:"seehund",n:"Seehund",s:"Phoca vitulina",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:2,m:"🦭",r:["EU","NAM","ARK"],tip:"Bei Niedrigwasser auf Sandbänken der Nordsee."},
+{id:"kegelrobbe",n:"Kegelrobbe",s:"Halichoerus grypus",o:"Raubtiere",fa:"Hundsrobben",h:["Küste & Meer"],t:3,m:"🦭",r:["EU","NAM"],tip:"Deutlich größer als der Seehund, mit gerader Schnauzenlinie."},
+{id:"schweinswal",n:"Schweinswal",s:"Phocoena phocoena",o:"Wale",fa:"Schweinswale",h:["Küste & Meer"],t:3,m:"🐬",r:["EU","NAM","OZE"],tip:"Kleine dreieckige Finne vor Sylt und Fehmarn, bei ruhiger See."},
+{id:"biber",n:"Europäischer Biber",s:"Castor fiber",o:"Nagetiere",fa:"Biber",h:["Süßwasser"],t:2,m:"🦫",r:["EU","NAS"],tip:"Nagespuren und Dämme das ganze Jahr, das Tier selbst abends."},
+{id:"eichhoernchen",n:"Eichhörnchen",s:"Sciurus vulgaris",o:"Nagetiere",fa:"Hörnchen",h:["Wald","Siedlung"],t:1,m:"🐿️",r:["EU","NAS"],tip:"Rot bis fast schwarz; Fichtenzapfen mit abgenagten Schuppen."},
+{id:"siebenschlaefer",n:"Siebenschläfer",s:"Glis glis",o:"Nagetiere",fa:"Bilche",h:["Wald","Siedlung"],t:3,m:"🐁",r:["EU"],tip:"Nachts in Buchenwäldern und auf Dachböden, quiekende Rufe."},
+{id:"feldhase",n:"Feldhase",s:"Lepus europaeus",o:"Hasenartige",fa:"Hasen",h:["Offenland"],t:1,m:"🐇",r:["EU","NAS"],tip:"Längere Löffel mit schwarzer Spitze, Einzelgänger im Acker."},
+{id:"wildkaninchen",n:"Wildkaninchen",s:"Oryctolagus cuniculus",o:"Hasenartige",fa:"Hasen",h:["Offenland","Siedlung"],t:1,m:"🐇",r:["EU","NAF","AUS"],tip:"Kleiner als der Hase, in Kolonien mit Erdbauen."},
+{id:"igel",n:"Braunbrustigel",s:"Erinaceus europaeus",o:"Insektenfresser",fa:"Igel",h:["Siedlung","Wald"],t:1,m:"🦔",r:["EU"],tip:"Nachts im Garten, schnaufend und erstaunlich laut."},
+{id:"maulwurf",n:"Maulwurf",s:"Talpa europaea",o:"Insektenfresser",fa:"Maulwürfe",h:["Offenland","Siedlung"],t:2,m:"⛏️",r:["EU"],tip:"Fast immer nur als Hügel; das Tier sieht man kaum je."},
+{id:"zwergfledermaus",n:"Zwergfledermaus",s:"Pipistrellus pipistrellus",o:"Fledermäuse",fa:"Glattnasen",h:["Siedlung","Wald"],t:1,m:"🦇",r:["EU","NAF","MEA"],tip:"Am Detektor bei 45 kHz; jagt um Straßenlaternen."},
+{id:"abendsegler",n:"Großer Abendsegler",s:"Nyctalus noctula",o:"Fledermäuse",fa:"Glattnasen",h:["Wald","Siedlung"],t:2,m:"🦇",r:["EU","NAS"],tip:"Fliegt hoch und früh, oft noch bei Tageslicht; 20 kHz."},
 
 /* --- Europa: Vögel --- */
-{id:"amsel",n:"Amsel",s:"Turdus merula",o:"Sperlingsvögel",fa:"Drosseln",h:["Siedlung","Wald"],t:1,m:"🐦",tip:"Der flötende Gesang von Dachfirsten ab Februar."},
-{id:"rotkehlchen",n:"Rotkehlchen",s:"Erithacus rubecula",o:"Sperlingsvögel",fa:"Fliegenschnäpper",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Folgt dem Spaten; singt auch nachts unter Laternen."},
-{id:"kohlmeise",n:"Kohlmeise",s:"Parus major",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Zweisilbiges „zi-zi-bäh“ ab Januar, schwarzer Bauchstreif."},
-{id:"blaumeise",n:"Blaumeise",s:"Cyanistes caeruleus",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",tip:"Blaue Kappe, kleiner und wendiger als die Kohlmeise."},
-{id:"zaunkoenig",n:"Zaunkönig",s:"Troglodytes troglodytes",o:"Sperlingsvögel",fa:"Zaunkönige",h:["Wald","Süßwasser"],t:1,m:"🐦",tip:"Winzig, Schwanz steil aufgestellt, absurd lauter Gesang."},
-{id:"stieglitz",n:"Stieglitz",s:"Carduelis carduelis",o:"Sperlingsvögel",fa:"Finken",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Rote Gesichtsmaske, im Winter an Distelständen."},
-{id:"star",n:"Star",s:"Sturnus vulgaris",o:"Sperlingsvögel",fa:"Stare",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Imitiert andere Vögel und Handyklingeln; Schwärme im Herbst."},
-{id:"eichelhaeher",n:"Eichelhäher",s:"Garrulus glandarius",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Wald"],t:1,m:"🪶",tip:"Blaue Flügelfedern; warnt den halben Wald vor dir."},
-{id:"elster",n:"Elster",s:"Pica pica",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Siedlung","Offenland"],t:1,m:"🪶",tip:"Schwarzweiß mit langem Schwanz, große Reisignester."},
-{id:"kolkrabe",n:"Kolkrabe",s:"Corvus corax",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge","Wald"],t:2,m:"🪶",tip:"Keilförmiger Schwanz und tiefes „krok“; deutlich größer als die Krähe."},
-{id:"alpendohle",n:"Alpendohle",s:"Pyrrhocorax graculus",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge"],t:2,m:"🪶",tip:"Gelber Schnabel, an jeder Bergstation auf die Brotzeit wartend."},
-{id:"rauchschwalbe",n:"Rauchschwalbe",s:"Hirundo rustica",o:"Sperlingsvögel",fa:"Schwalben",h:["Offenland","Siedlung"],t:1,m:"🐦",tip:"Lange Schwanzspieße, brütet in Ställen."},
-{id:"buntspecht",n:"Buntspecht",s:"Dendrocopos major",o:"Spechtvögel",fa:"Spechte",h:["Wald","Siedlung"],t:1,m:"🪶",tip:"Trommeln im Frühjahr; roter Unterschwanz."},
-{id:"gruenspecht",n:"Grünspecht",s:"Picus viridis",o:"Spechtvögel",fa:"Spechte",h:["Offenland","Siedlung"],t:2,m:"🪶",tip:"Lachender Ruf; sucht Ameisen auf Wiesen und Rasen."},
-{id:"schwarzspecht",n:"Schwarzspecht",s:"Dryocopus martius",o:"Spechtvögel",fa:"Spechte",h:["Wald"],t:3,m:"🪶",tip:"Krähengroß, ganz schwarz; große rechteckige Höhlen in Buchen."},
-{id:"kuckuck",n:"Kuckuck",s:"Cuculus canorus",o:"Kuckucksvögel",fa:"Kuckucke",h:["Wald","Offenland"],t:2,m:"🐦",tip:"Ab April zu hören, kaum je zu sehen — ein Fall für „nur gehört“."},
-{id:"waldkauz",n:"Waldkauz",s:"Strix aluco",o:"Eulen",fa:"Eigentliche Eulen",h:["Wald","Siedlung"],t:2,m:"🦉",tip:"Das klassische „huu-huhuhuu“ im Winter, oft aus Parks."},
-{id:"uhu",n:"Uhu",s:"Bubo bubo",o:"Eulen",fa:"Eigentliche Eulen",h:["Gebirge","Wald"],t:3,m:"🦉",tip:"Brütet in Steinbrüchen; dumpfes „buho“ in klaren Februarnächten."},
-{id:"maeusebussard",n:"Mäusebussard",s:"Buteo buteo",o:"Greifvögel",fa:"Habichtartige",h:["Offenland","Wald"],t:1,m:"🦅",tip:"Der Vogel auf dem Autobahnpfosten; miauender Ruf."},
-{id:"rotmilan",n:"Rotmilan",s:"Milvus milvus",o:"Greifvögel",fa:"Habichtartige",h:["Offenland"],t:2,m:"🦅",tip:"Tief gegabelter Schwanz, rostrot; Deutschland ist sein Kernland."},
-{id:"seeadler",n:"Seeadler",s:"Haliaeetus albicilla",o:"Greifvögel",fa:"Habichtartige",h:["Süßwasser","Küste & Meer"],t:3,m:"🦅",tip:"Fliegende Scheunentür mit weißem Stoßschwanz."},
-{id:"bartgeier",n:"Bartgeier",s:"Gypaetus barbatus",o:"Greifvögel",fa:"Habichtartige",h:["Gebirge"],t:3,m:"🦅",tip:"Fast drei Meter Spannweite; in den Alpen wiederangesiedelt."},
-{id:"turmfalke",n:"Turmfalke",s:"Falco tinnunculus",o:"Falken",fa:"Falken",h:["Offenland","Siedlung"],t:1,m:"🦅",tip:"Rüttelt auf der Stelle über Feldrainen."},
-{id:"wanderfalke",n:"Wanderfalke",s:"Falco peregrinus",o:"Falken",fa:"Falken",h:["Gebirge","Siedlung"],t:3,m:"🦅",tip:"Brütet an Felswänden, Kirchtürmen und Kraftwerken."},
-{id:"weissstorch",n:"Weißstorch",s:"Ciconia ciconia",o:"Schreitvögel",fa:"Störche",h:["Offenland","Süßwasser"],t:2,m:"🕊️",tip:"Klappern auf dem Horst; ab Februar zurück."},
-{id:"graureiher",n:"Graureiher",s:"Ardea cinerea",o:"Schreitvögel",fa:"Reiher",h:["Süßwasser","Offenland"],t:1,m:"🕊️",tip:"Steht reglos am Grabenrand, fliegt mit eingezogenem Hals."},
-{id:"kranich",n:"Kranich",s:"Grus grus",o:"Kranichvögel",fa:"Kraniche",h:["Süßwasser","Offenland"],t:2,m:"🕊️",tip:"Im Oktober als trompetende Keile über dem Haus."},
-{id:"hoeckerschwan",n:"Höckerschwan",s:"Cygnus olor",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser"],t:1,m:"🦢",tip:"Orangeroter Schnabel mit schwarzem Höcker."},
-{id:"stockente",n:"Stockente",s:"Anas platyrhynchos",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser","Siedlung"],t:1,m:"🦆",tip:"Der Ausgangspunkt für jede Entenbestimmung."},
-{id:"haubentaucher",n:"Haubentaucher",s:"Podiceps cristatus",o:"Lappentaucher",fa:"Lappentaucher",h:["Süßwasser"],t:2,m:"🦆",tip:"Balztanz im Frühjahr, Junge reiten auf dem Rücken."},
-{id:"kormoran",n:"Kormoran",s:"Phalacrocorax carbo",o:"Ruderfüßer",fa:"Kormorane",h:["Süßwasser","Küste & Meer"],t:1,m:"🕊️",tip:"Sitzt mit ausgebreiteten Flügeln zum Trocknen."},
-{id:"eisvogel",n:"Eisvogel",s:"Alcedo atthis",o:"Rackenvögel",fa:"Eisvögel",h:["Süßwasser"],t:3,m:"🐦",tip:"Blauer Blitz über dem Bach; meist hört man den Pfiff zuerst."},
-{id:"wiedehopf",n:"Wiedehopf",s:"Upupa epops",o:"Rackenvögel",fa:"Wiedehopfe",h:["Offenland","Trockengebiet"],t:3,m:"🐦",tip:"Federhaube und „upupup“; in Deutschland sehr lokal."},
+{id:"amsel",n:"Amsel",s:"Turdus merula",o:"Sperlingsvögel",fa:"Drosseln",h:["Siedlung","Wald"],t:1,m:"🐦",r:["EU","NAF","SAS"],tip:"Der flötende Gesang von Dachfirsten ab Februar."},
+{id:"rotkehlchen",n:"Rotkehlchen",s:"Erithacus rubecula",o:"Sperlingsvögel",fa:"Fliegenschnäpper",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAF"],tip:"Folgt dem Spaten; singt auch nachts unter Laternen."},
+{id:"kohlmeise",n:"Kohlmeise",s:"Parus major",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAS","SAS"],tip:"Zweisilbiges „zi-zi-bäh“ ab Januar, schwarzer Bauchstreif."},
+{id:"blaumeise",n:"Blaumeise",s:"Cyanistes caeruleus",o:"Sperlingsvögel",fa:"Meisen",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAF"],tip:"Blaue Kappe, kleiner und wendiger als die Kohlmeise."},
+{id:"zaunkoenig",n:"Zaunkönig",s:"Troglodytes troglodytes",o:"Sperlingsvögel",fa:"Zaunkönige",h:["Wald","Süßwasser"],t:1,m:"🐦",r:["EU","NAM","NAS"],tip:"Winzig, Schwanz steil aufgestellt, absurd lauter Gesang."},
+{id:"stieglitz",n:"Stieglitz",s:"Carduelis carduelis",o:"Sperlingsvögel",fa:"Finken",h:["Offenland","Siedlung"],t:1,m:"🐦",r:["EU","NAF","SAS"],tip:"Rote Gesichtsmaske, im Winter an Distelständen."},
+{id:"star",n:"Star",s:"Sturnus vulgaris",o:"Sperlingsvögel",fa:"Stare",h:["Offenland","Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAM"],tip:"Imitiert andere Vögel und Handyklingeln; Schwärme im Herbst."},
+{id:"eichelhaeher",n:"Eichelhäher",s:"Garrulus glandarius",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Wald"],t:1,m:"🪶",r:["EU","NAS","SAS"],tip:"Blaue Flügelfedern; warnt den halben Wald vor dir."},
+{id:"elster",n:"Elster",s:"Pica pica",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Siedlung","Offenland"],t:1,m:"🪶",r:["EU","NAS"],tip:"Schwarzweiß mit langem Schwanz, große Reisignester."},
+{id:"kolkrabe",n:"Kolkrabe",s:"Corvus corax",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge","Wald"],t:2,m:"🪶",r:["EU","NAS","NAM","NAF"],tip:"Keilförmiger Schwanz und tiefes „krok“; deutlich größer als die Krähe."},
+{id:"alpendohle",n:"Alpendohle",s:"Pyrrhocorax graculus",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Gebirge"],t:2,m:"🪶",r:["EU","SAS"],tip:"Gelber Schnabel, an jeder Bergstation auf die Brotzeit wartend."},
+{id:"rauchschwalbe",n:"Rauchschwalbe",s:"Hirundo rustica",o:"Sperlingsvögel",fa:"Schwalben",h:["Offenland","Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAM","AFR","SAS"],tip:"Lange Schwanzspieße, brütet in Ställen."},
+{id:"buntspecht",n:"Buntspecht",s:"Dendrocopos major",o:"Spechtvögel",fa:"Spechte",h:["Wald","Siedlung"],t:1,m:"🪶",r:["EU","NAS"],tip:"Trommeln im Frühjahr; roter Unterschwanz."},
+{id:"gruenspecht",n:"Grünspecht",s:"Picus viridis",o:"Spechtvögel",fa:"Spechte",h:["Offenland","Siedlung"],t:2,m:"🪶",r:["EU","MEA"],tip:"Lachender Ruf; sucht Ameisen auf Wiesen und Rasen."},
+{id:"schwarzspecht",n:"Schwarzspecht",s:"Dryocopus martius",o:"Spechtvögel",fa:"Spechte",h:["Wald"],t:3,m:"🪶",r:["EU","NAS"],tip:"Krähengroß, ganz schwarz; große rechteckige Höhlen in Buchen."},
+{id:"kuckuck",n:"Kuckuck",s:"Cuculus canorus",o:"Kuckucksvögel",fa:"Kuckucke",h:["Wald","Offenland"],t:2,m:"🐦",r:["EU","NAS","AFR","SAS"],tip:"Ab April zu hören, kaum je zu sehen — ein Fall für „nur gehört“."},
+{id:"waldkauz",n:"Waldkauz",s:"Strix aluco",o:"Eulen",fa:"Eigentliche Eulen",h:["Wald","Siedlung"],t:2,m:"🦉",r:["EU","NAF","SAS"],tip:"Das klassische „huu-huhuhuu“ im Winter, oft aus Parks."},
+{id:"uhu",n:"Uhu",s:"Bubo bubo",o:"Eulen",fa:"Eigentliche Eulen",h:["Gebirge","Wald"],t:3,m:"🦉",r:["EU","NAS","SAS","NAF"],tip:"Brütet in Steinbrüchen; dumpfes „buho“ in klaren Februarnächten."},
+{id:"maeusebussard",n:"Mäusebussard",s:"Buteo buteo",o:"Greifvögel",fa:"Habichtartige",h:["Offenland","Wald"],t:1,m:"🦅",r:["EU","NAS","AFR"],tip:"Der Vogel auf dem Autobahnpfosten; miauender Ruf."},
+{id:"rotmilan",n:"Rotmilan",s:"Milvus milvus",o:"Greifvögel",fa:"Habichtartige",h:["Offenland"],t:2,m:"🦅",r:["EU","NAF"],tip:"Tief gegabelter Schwanz, rostrot; Deutschland ist sein Kernland."},
+{id:"seeadler",n:"Seeadler",s:"Haliaeetus albicilla",o:"Greifvögel",fa:"Habichtartige",h:["Süßwasser","Küste & Meer"],t:3,m:"🦅",r:["EU","NAS"],tip:"Fliegende Scheunentür mit weißem Stoßschwanz."},
+{id:"bartgeier",n:"Bartgeier",s:"Gypaetus barbatus",o:"Greifvögel",fa:"Habichtartige",h:["Gebirge"],t:3,m:"🦅",r:["EU","NAF","AFR","SAS"],tip:"Fast drei Meter Spannweite; in den Alpen wiederangesiedelt."},
+{id:"turmfalke",n:"Turmfalke",s:"Falco tinnunculus",o:"Falken",fa:"Falken",h:["Offenland","Siedlung"],t:1,m:"🦅",r:["EU","NAS","AFR","SAS"],tip:"Rüttelt auf der Stelle über Feldrainen."},
+{id:"wanderfalke",n:"Wanderfalke",s:"Falco peregrinus",o:"Falken",fa:"Falken",h:["Gebirge","Siedlung"],t:3,m:"🦅",r:["EU","NAS","NAM","SAM","AFR","SAS","SEA","AUS","MAM","NAF","MEA"],tip:"Brütet an Felswänden, Kirchtürmen und Kraftwerken."},
+{id:"weissstorch",n:"Weißstorch",s:"Ciconia ciconia",o:"Schreitvögel",fa:"Störche",h:["Offenland","Süßwasser"],t:2,m:"🕊️",r:["EU","NAF","AFR","MEA"],tip:"Klappern auf dem Horst; ab Februar zurück."},
+{id:"graureiher",n:"Graureiher",s:"Ardea cinerea",o:"Schreitvögel",fa:"Reiher",h:["Süßwasser","Offenland"],t:1,m:"🕊️",r:["EU","NAS","AFR","SAS"],tip:"Steht reglos am Grabenrand, fliegt mit eingezogenem Hals."},
+{id:"kranich",n:"Kranich",s:"Grus grus",o:"Kranichvögel",fa:"Kraniche",h:["Süßwasser","Offenland"],t:2,m:"🕊️",r:["EU","NAS","AFR"],tip:"Im Oktober als trompetende Keile über dem Haus."},
+{id:"hoeckerschwan",n:"Höckerschwan",s:"Cygnus olor",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser"],t:1,m:"🦢",r:["EU","NAS","NAM"],tip:"Orangeroter Schnabel mit schwarzem Höcker."},
+{id:"stockente",n:"Stockente",s:"Anas platyrhynchos",o:"Gänsevögel",fa:"Entenvögel",h:["Süßwasser","Siedlung"],t:1,m:"🦆",r:["EU","NAS","NAM","SAS"],tip:"Der Ausgangspunkt für jede Entenbestimmung."},
+{id:"haubentaucher",n:"Haubentaucher",s:"Podiceps cristatus",o:"Lappentaucher",fa:"Lappentaucher",h:["Süßwasser"],t:2,m:"🦆",r:["EU","NAS","AFR","AUS"],tip:"Balztanz im Frühjahr, Junge reiten auf dem Rücken."},
+{id:"kormoran",n:"Kormoran",s:"Phalacrocorax carbo",o:"Ruderfüßer",fa:"Kormorane",h:["Süßwasser","Küste & Meer"],t:1,m:"🕊️",r:["EU","NAS","NAM","AFR","AUS"],tip:"Sitzt mit ausgebreiteten Flügeln zum Trocknen."},
+{id:"eisvogel",n:"Eisvogel",s:"Alcedo atthis",o:"Rackenvögel",fa:"Eisvögel",h:["Süßwasser"],t:3,m:"🐦",r:["EU","NAS","SAS","SEA"],tip:"Blauer Blitz über dem Bach; meist hört man den Pfiff zuerst."},
+{id:"wiedehopf",n:"Wiedehopf",s:"Upupa epops",o:"Rackenvögel",fa:"Wiedehopfe",h:["Offenland","Trockengebiet"],t:3,m:"🐦",r:["EU","NAF","AFR","SAS","MEA"],tip:"Federhaube und „upupup“; in Deutschland sehr lokal."},
 
 /* --- Europa: Amphibien und Reptilien --- */
-{id:"zauneidechse",n:"Zauneidechse",s:"Lacerta agilis",o:"Schuppenkriechtiere",fa:"Echte Eidechsen",h:["Offenland","Trockengebiet"],t:2,m:"🦎",tip:"Männchen im Mai grasgrün an den Flanken; Bahndämme und Säume."},
-{id:"blindschleiche",n:"Blindschleiche",s:"Anguis fragilis",o:"Schuppenkriechtiere",fa:"Schleichen",h:["Wald","Siedlung"],t:2,m:"🦎",tip:"Keine Schlange, sondern eine beinlose Echse; unter Brettern."},
-{id:"ringelnatter",n:"Ringelnatter",s:"Natrix natrix",o:"Schuppenkriechtiere",fa:"Nattern",h:["Süßwasser"],t:2,m:"🐍",tip:"Gelbe Halbmonde im Nacken; schwimmt mit erhobenem Kopf."},
-{id:"kreuzotter",n:"Kreuzotter",s:"Vipera berus",o:"Schuppenkriechtiere",fa:"Vipern",h:["Gebirge","Offenland"],t:3,m:"🐍",tip:"Zickzackband und senkrechte Pupille; vormittags beim Sonnen."},
-{id:"erdkroete",n:"Erdkröte",s:"Bufo bufo",o:"Froschlurche",fa:"Kröten",h:["Wald","Süßwasser"],t:1,m:"🐸",tip:"Die Massenwanderung an den ersten milden Regenabenden im März."},
-{id:"grasfrosch",n:"Grasfrosch",s:"Rana temporaria",o:"Froschlurche",fa:"Echte Frösche",h:["Süßwasser","Wald"],t:1,m:"🐸",tip:"Dunkler Schläfenfleck; laicht in großen Ballen."},
-{id:"laubfrosch",n:"Laubfrosch",s:"Hyla arborea",o:"Froschlurche",fa:"Laubfrösche",h:["Süßwasser","Offenland"],t:3,m:"🐸",tip:"Knallgrün und daumengroß; abends ohrenbetäubend laut."},
-{id:"feuersalamander",n:"Feuersalamander",s:"Salamandra salamandra",o:"Schwanzlurche",fa:"Echte Salamander",h:["Wald"],t:2,m:"🦎",tip:"An Regenabenden auf Waldwegen an Quellbächen."},
+{id:"zauneidechse",n:"Zauneidechse",s:"Lacerta agilis",o:"Schuppenkriechtiere",fa:"Echte Eidechsen",h:["Offenland","Trockengebiet"],t:2,m:"🦎",r:["EU","NAS"],tip:"Männchen im Mai grasgrün an den Flanken; Bahndämme und Säume."},
+{id:"blindschleiche",n:"Blindschleiche",s:"Anguis fragilis",o:"Schuppenkriechtiere",fa:"Schleichen",h:["Wald","Siedlung"],t:2,m:"🦎",r:["EU","MEA"],tip:"Keine Schlange, sondern eine beinlose Echse; unter Brettern."},
+{id:"ringelnatter",n:"Ringelnatter",s:"Natrix natrix",o:"Schuppenkriechtiere",fa:"Nattern",h:["Süßwasser"],t:2,m:"🐍",r:["EU","NAF"],tip:"Gelbe Halbmonde im Nacken; schwimmt mit erhobenem Kopf."},
+{id:"kreuzotter",n:"Kreuzotter",s:"Vipera berus",o:"Schuppenkriechtiere",fa:"Vipern",h:["Gebirge","Offenland"],t:3,m:"🐍",r:["EU","NAS"],tip:"Zickzackband und senkrechte Pupille; vormittags beim Sonnen."},
+{id:"erdkroete",n:"Erdkröte",s:"Bufo bufo",o:"Froschlurche",fa:"Kröten",h:["Wald","Süßwasser"],t:1,m:"🐸",r:["EU","NAF","NAS"],tip:"Die Massenwanderung an den ersten milden Regenabenden im März."},
+{id:"grasfrosch",n:"Grasfrosch",s:"Rana temporaria",o:"Froschlurche",fa:"Echte Frösche",h:["Süßwasser","Wald"],t:1,m:"🐸",r:["EU","NAS"],tip:"Dunkler Schläfenfleck; laicht in großen Ballen."},
+{id:"laubfrosch",n:"Laubfrosch",s:"Hyla arborea",o:"Froschlurche",fa:"Laubfrösche",h:["Süßwasser","Offenland"],t:3,m:"🐸",r:["EU"],tip:"Knallgrün und daumengroß; abends ohrenbetäubend laut."},
+{id:"feuersalamander",n:"Feuersalamander",s:"Salamandra salamandra",o:"Schwanzlurche",fa:"Echte Salamander",h:["Wald"],t:2,m:"🦎",r:["EU","MEA"],tip:"An Regenabenden auf Waldwegen an Quellbächen."},
 
 /* --- Europa: Wirbellose --- */
-{id:"tagpfauenauge",n:"Tagpfauenauge",s:"Aglais io",o:"Schmetterlinge",fa:"Edelfalter",h:["Offenland","Siedlung"],t:1,m:"🦋",tip:"Überwintert als Falter, fliegt schon im März."},
-{id:"schwalbenschwanz",n:"Schwalbenschwanz",s:"Papilio machaon",o:"Schmetterlinge",fa:"Ritterfalter",h:["Offenland","Gebirge"],t:2,m:"🦋",tip:"Sammelt sich auf Bergkuppen; Raupe auf Wilder Möhre."},
-{id:"hirschkaefer",n:"Hirschkäfer",s:"Lucanus cervus",o:"Käfer",fa:"Schröter",h:["Wald"],t:3,m:"🪲",tip:"Juniabende um alte Eichen; Männchen mit Geweih-Mandibeln."},
-{id:"koenigslibelle",n:"Große Königslibelle",s:"Anax imperator",o:"Libellen",fa:"Edellibellen",h:["Süßwasser"],t:2,m:"🪰",tip:"Patrouilliert im Sommer unermüdlich über dem Teich."},
-{id:"gottesanbeterin",n:"Gottesanbeterin",s:"Mantis religiosa",o:"Fangschrecken",fa:"Fangschrecken",h:["Trockengebiet","Offenland"],t:3,m:"🦗",tip:"Breitet sich nach Norden aus; Spätsommer an Trockenhängen."},
+{id:"tagpfauenauge",n:"Tagpfauenauge",s:"Aglais io",o:"Schmetterlinge",fa:"Edelfalter",h:["Offenland","Siedlung"],t:1,m:"🦋",r:["EU","NAS"],tip:"Überwintert als Falter, fliegt schon im März."},
+{id:"schwalbenschwanz",n:"Schwalbenschwanz",s:"Papilio machaon",o:"Schmetterlinge",fa:"Ritterfalter",h:["Offenland","Gebirge"],t:2,m:"🦋",r:["EU","NAS","NAM","NAF"],tip:"Sammelt sich auf Bergkuppen; Raupe auf Wilder Möhre."},
+{id:"hirschkaefer",n:"Hirschkäfer",s:"Lucanus cervus",o:"Käfer",fa:"Schröter",h:["Wald"],t:3,m:"🪲",r:["EU","MEA"],tip:"Juniabende um alte Eichen; Männchen mit Geweih-Mandibeln."},
+{id:"koenigslibelle",n:"Große Königslibelle",s:"Anax imperator",o:"Libellen",fa:"Edellibellen",h:["Süßwasser"],t:2,m:"🪰",r:["EU","NAF","MEA","SAS"],tip:"Patrouilliert im Sommer unermüdlich über dem Teich."},
+{id:"gottesanbeterin",n:"Gottesanbeterin",s:"Mantis religiosa",o:"Fangschrecken",fa:"Fangschrecken",h:["Trockengebiet","Offenland"],t:3,m:"🦗",r:["EU","NAF","AFR","SAS"],tip:"Breitet sich nach Norden aus; Spätsommer an Trockenhängen."},
 
 /* --- Südamerika --- */
-{id:"jaguar",n:"Jaguar",s:"Panthera onca",o:"Raubtiere",fa:"Katzen",h:["Regenwald","Süßwasser"],t:3,m:"🐆",tip:"Beste Chance im Pantanal an Flussufern in der Trockenzeit."},
-{id:"puma",n:"Puma",s:"Puma concolor",o:"Raubtiere",fa:"Katzen",h:["Gebirge","Offenland"],t:3,m:"🐆",tip:"Einfarbig, langer Schwanz; Torres del Paine ist der sichere Ort."},
-{id:"ozelot",n:"Ozelot",s:"Leopardus pardalis",o:"Raubtiere",fa:"Katzen",h:["Regenwald"],t:3,m:"🐆",tip:"Nachtaktiv, meist nur als Augenpaar im Scheinwerfer."},
-{id:"nasenbaer",n:"Südamerikanischer Nasenbär",s:"Nasua nasua",o:"Raubtiere",fa:"Kleinbären",h:["Regenwald"],t:2,m:"🦝",tip:"In Trupps mit aufgestelltem Ringelschwanz, etwa an den Iguazú-Fällen."},
-{id:"riesenotter",n:"Riesenotter",s:"Pteronura brasiliensis",o:"Raubtiere",fa:"Marder",h:["Süßwasser","Regenwald"],t:3,m:"🦦",tip:"Bis 1,80 m, laut und in Familiengruppen; Pantanal und Amazonas."},
-{id:"maehnenrobbe",n:"Mähnenrobbe",s:"Otaria flavescens",o:"Raubtiere",fa:"Ohrenrobben",h:["Küste & Meer"],t:2,m:"🦭",tip:"An den Hafenmolen von Valdés bis Valparaíso."},
-{id:"bruellaffe",n:"Roter Brüllaffe",s:"Alouatta seniculus",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:2,m:"🐒",tip:"Im Morgengrauen kilometerweit zu hören — oft nur akustisch."},
-{id:"kapuzineraffe",n:"Kapuzineraffe",s:"Cebus capucinus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",tip:"Neugierig und laut; klaut an Rastplätzen alles Essbare."},
-{id:"klammeraffe",n:"Klammeraffe",s:"Ateles geoffroyi",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:3,m:"🐒",tip:"Hangelt mit Greifschwanz durch die Kronen, selten am Boden."},
-{id:"totenkopfaffe",n:"Totenkopfäffchen",s:"Saimiri sciureus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",tip:"In großen Trupps entlang von Flussufern."},
-{id:"faultier",n:"Dreifinger-Faultier",s:"Bradypus variegatus",o:"Zahnarme",fa:"Dreifinger-Faultiere",h:["Regenwald"],t:2,m:"🦥",tip:"Als moosiger Klumpen in der Astgabel; Fernglas hilft."},
-{id:"ameisenbaer",n:"Großer Ameisenbär",s:"Myrmecophaga tridactyla",o:"Zahnarme",fa:"Ameisenbären",h:["Savanne","Regenwald"],t:3,m:"🐜",tip:"Cerrado und Pantanal, morgens über offenes Grasland ziehend."},
-{id:"guerteltier",n:"Neunbinden-Gürteltier",s:"Dasypus novemcinctus",o:"Gürteltiere",fa:"Langnasengürteltiere",h:["Regenwald","Savanne"],t:2,m:"🦔",tip:"Nachts am Wegrand wühlend, erstaunlich taub für Geräusche."},
-{id:"capybara",n:"Capybara",s:"Hydrochoerus hydrochaeris",o:"Nagetiere",fa:"Meerschweinchen",h:["Süßwasser","Savanne"],t:1,m:"🐹",tip:"Das größte Nagetier der Welt; in Gruppen am Wasser."},
-{id:"tapir",n:"Flachlandtapir",s:"Tapirus terrestris",o:"Unpaarhufer",fa:"Tapire",h:["Regenwald","Süßwasser"],t:3,m:"🐖",tip:"Nachts an Salzlecken; rüsselartige Nase."},
-{id:"vikunja",n:"Vikunja",s:"Vicugna vicugna",o:"Paarhufer",fa:"Kamele",h:["Gebirge","Trockengebiet"],t:2,m:"🦙",tip:"Zierlich und wild, im Altiplano über 3.500 Metern."},
-{id:"guanako",n:"Guanako",s:"Lama guanicoe",o:"Paarhufer",fa:"Kamele",h:["Offenland","Gebirge"],t:2,m:"🦙",tip:"Patagonische Steppe, häufig entlang der Ruta 40."},
-{id:"flussdelfin",n:"Amazonas-Flussdelfin",s:"Inia geoffrensis",o:"Wale",fa:"Flussdelfine",h:["Süßwasser"],t:3,m:"🐬",tip:"Rosa gefärbt; taucht an Flusszusammenflüssen kurz auf."},
-{id:"andenkondor",n:"Andenkondor",s:"Vultur gryphus",o:"Greifvögel",fa:"Neuweltgeier",h:["Gebirge"],t:3,m:"🦅",tip:"Drei Meter Spannweite; Colca-Canyon am Vormittag."},
-{id:"hyazinthara",n:"Hyazinth-Ara",s:"Anodorhynchus hyacinthinus",o:"Papageien",fa:"Eigentliche Papageien",h:["Savanne","Regenwald"],t:3,m:"🦜",tip:"Kobaltblau, der größte Ara; Pantanal an Palmen."},
-{id:"gelbbrustara",n:"Gelbbrustara",s:"Ara ararauna",o:"Papageien",fa:"Eigentliche Papageien",h:["Regenwald"],t:2,m:"🦜",tip:"Fliegt paarweise und schreiend über den Wald."},
-{id:"tukan",n:"Riesentukan",s:"Ramphastos toco",o:"Spechtvögel",fa:"Tukane",h:["Savanne","Regenwald"],t:2,m:"🦜",tip:"Der orange Riesenschnabel ist auf 200 Meter erkennbar."},
-{id:"felsenhahn",n:"Andenfelsenhahn",s:"Rupicola peruvianus",o:"Sperlingsvögel",fa:"Schmuckvögel",h:["Regenwald","Gebirge"],t:3,m:"🐦",tip:"Leuchtend orange Männchen an Balzplätzen im Nebelwald."},
-{id:"hoatzin",n:"Hoatzin",s:"Opisthocomus hoazin",o:"Hoatzinvögel",fa:"Hoatzine",h:["Süßwasser","Regenwald"],t:3,m:"🐦",tip:"Riecht nach Mist, fliegt miserabel; Küken haben Flügelkrallen."},
-{id:"magellanpinguin",n:"Magellanpinguin",s:"Spheniscus magellanicus",o:"Pinguine",fa:"Pinguine",h:["Küste & Meer"],t:2,m:"🐧",tip:"Brutkolonien in Patagonien von Oktober bis März."},
-{id:"blaufusstoelpel",n:"Blaufußtölpel",s:"Sula nebouxii",o:"Ruderfüßer",fa:"Tölpel",h:["Küste & Meer"],t:3,m:"🐦",tip:"Galápagos; der Balztanz mit den blauen Füßen ist echt."},
-{id:"meerechse",n:"Meerechse",s:"Amblyrhynchus cristatus",o:"Schuppenkriechtiere",fa:"Leguane",h:["Küste & Meer"],t:3,m:"🦎",tip:"Nur auf Galápagos; niest Salz aus den Nasendrüsen."},
-{id:"gruenerleguan",n:"Grüner Leguan",s:"Iguana iguana",o:"Schuppenkriechtiere",fa:"Leguane",h:["Regenwald","Süßwasser"],t:2,m:"🦎",tip:"Sonnt sich auf Ästen über dem Wasser und lässt sich hineinfallen."},
-{id:"galapagosschildkroete",n:"Galápagos-Riesenschildkröte",s:"Chelonoidis niger",o:"Schildkröten",fa:"Landschildkröten",h:["Trockengebiet"],t:3,m:"🐢",tip:"Im Hochland von Santa Cruz frei in den Weiden."},
-{id:"brillenkaiman",n:"Brillenkaiman",s:"Caiman crocodilus",o:"Krokodile",fa:"Alligatoren",h:["Süßwasser","Regenwald"],t:2,m:"🐊",tip:"Nachts leuchten die Augen rot im Taschenlampenstrahl."},
-{id:"anakonda",n:"Große Anakonda",s:"Eunectes murinus",o:"Schuppenkriechtiere",fa:"Boas",h:["Süßwasser","Regenwald"],t:3,m:"🐍",tip:"In den Llanos in flachen Tümpeln; schwerste Schlange der Welt."},
-{id:"pfeilgiftfrosch",n:"Erdbeerfröschchen",s:"Oophaga pumilio",o:"Froschlurche",fa:"Baumsteigerfrösche",h:["Regenwald"],t:2,m:"🐸",tip:"Daumennagelgroß und knallrot; ruft aus der Laubstreu."},
-{id:"morphofalter",n:"Blauer Morphofalter",s:"Morpho peleides",o:"Schmetterlinge",fa:"Edelfalter",h:["Regenwald"],t:2,m:"🦋",tip:"Blitzt beim Flug metallisch blau, im Sitzen unscheinbar braun."},
+{id:"jaguar",n:"Jaguar",s:"Panthera onca",o:"Raubtiere",fa:"Katzen",h:["Regenwald","Süßwasser"],t:3,m:"🐆",r:["SAM","MAM"],tip:"Beste Chance im Pantanal an Flussufern in der Trockenzeit."},
+{id:"puma",n:"Puma",s:"Puma concolor",o:"Raubtiere",fa:"Katzen",h:["Gebirge","Offenland"],t:3,m:"🐆",r:["NAM","MAM","SAM"],tip:"Einfarbig, langer Schwanz; Torres del Paine ist der sichere Ort."},
+{id:"ozelot",n:"Ozelot",s:"Leopardus pardalis",o:"Raubtiere",fa:"Katzen",h:["Regenwald"],t:3,m:"🐆",r:["SAM","MAM","NAM"],tip:"Nachtaktiv, meist nur als Augenpaar im Scheinwerfer."},
+{id:"nasenbaer",n:"Südamerikanischer Nasenbär",s:"Nasua nasua",o:"Raubtiere",fa:"Kleinbären",h:["Regenwald"],t:2,m:"🦝",r:["SAM"],tip:"In Trupps mit aufgestelltem Ringelschwanz, etwa an den Iguazú-Fällen."},
+{id:"riesenotter",n:"Riesenotter",s:"Pteronura brasiliensis",o:"Raubtiere",fa:"Marder",h:["Süßwasser","Regenwald"],t:3,m:"🦦",r:["SAM"],tip:"Bis 1,80 m, laut und in Familiengruppen; Pantanal und Amazonas."},
+{id:"maehnenrobbe",n:"Mähnenrobbe",s:"Otaria flavescens",o:"Raubtiere",fa:"Ohrenrobben",h:["Küste & Meer"],t:2,m:"🦭",r:["SAM"],tip:"An den Hafenmolen von Valdés bis Valparaíso."},
+{id:"bruellaffe",n:"Roter Brüllaffe",s:"Alouatta seniculus",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:2,m:"🐒",r:["SAM"],tip:"Im Morgengrauen kilometerweit zu hören — oft nur akustisch."},
+{id:"kapuzineraffe",n:"Kapuzineraffe",s:"Cebus capucinus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",r:["MAM","SAM"],tip:"Neugierig und laut; klaut an Rastplätzen alles Essbare."},
+{id:"klammeraffe",n:"Klammeraffe",s:"Ateles geoffroyi",o:"Primaten",fa:"Klammerschwanzaffen",h:["Regenwald"],t:3,m:"🐒",r:["MAM","SAM"],tip:"Hangelt mit Greifschwanz durch die Kronen, selten am Boden."},
+{id:"totenkopfaffe",n:"Totenkopfäffchen",s:"Saimiri sciureus",o:"Primaten",fa:"Kapuzinerartige",h:["Regenwald"],t:2,m:"🐒",r:["SAM"],tip:"In großen Trupps entlang von Flussufern."},
+{id:"faultier",n:"Dreifinger-Faultier",s:"Bradypus variegatus",o:"Zahnarme",fa:"Dreifinger-Faultiere",h:["Regenwald"],t:2,m:"🦥",r:["SAM","MAM"],tip:"Als moosiger Klumpen in der Astgabel; Fernglas hilft."},
+{id:"ameisenbaer",n:"Großer Ameisenbär",s:"Myrmecophaga tridactyla",o:"Zahnarme",fa:"Ameisenbären",h:["Savanne","Regenwald"],t:3,m:"🐜",r:["SAM","MAM"],tip:"Cerrado und Pantanal, morgens über offenes Grasland ziehend."},
+{id:"guerteltier",n:"Neunbinden-Gürteltier",s:"Dasypus novemcinctus",o:"Gürteltiere",fa:"Langnasengürteltiere",h:["Regenwald","Savanne"],t:2,m:"🦔",r:["SAM","MAM","NAM"],tip:"Nachts am Wegrand wühlend, erstaunlich taub für Geräusche."},
+{id:"capybara",n:"Capybara",s:"Hydrochoerus hydrochaeris",o:"Nagetiere",fa:"Meerschweinchen",h:["Süßwasser","Savanne"],t:1,m:"🐹",r:["SAM"],tip:"Das größte Nagetier der Welt; in Gruppen am Wasser."},
+{id:"tapir",n:"Flachlandtapir",s:"Tapirus terrestris",o:"Unpaarhufer",fa:"Tapire",h:["Regenwald","Süßwasser"],t:3,m:"🐖",r:["SAM"],tip:"Nachts an Salzlecken; rüsselartige Nase."},
+{id:"vikunja",n:"Vikunja",s:"Vicugna vicugna",o:"Paarhufer",fa:"Kamele",h:["Gebirge","Trockengebiet"],t:2,m:"🦙",r:["SAM"],tip:"Zierlich und wild, im Altiplano über 3.500 Metern."},
+{id:"guanako",n:"Guanako",s:"Lama guanicoe",o:"Paarhufer",fa:"Kamele",h:["Offenland","Gebirge"],t:2,m:"🦙",r:["SAM"],tip:"Patagonische Steppe, häufig entlang der Ruta 40."},
+{id:"flussdelfin",n:"Amazonas-Flussdelfin",s:"Inia geoffrensis",o:"Wale",fa:"Flussdelfine",h:["Süßwasser"],t:3,m:"🐬",r:["SAM"],tip:"Rosa gefärbt; taucht an Flusszusammenflüssen kurz auf."},
+{id:"andenkondor",n:"Andenkondor",s:"Vultur gryphus",o:"Greifvögel",fa:"Neuweltgeier",h:["Gebirge"],t:3,m:"🦅",r:["SAM"],tip:"Drei Meter Spannweite; Colca-Canyon am Vormittag."},
+{id:"hyazinthara",n:"Hyazinth-Ara",s:"Anodorhynchus hyacinthinus",o:"Papageien",fa:"Eigentliche Papageien",h:["Savanne","Regenwald"],t:3,m:"🦜",r:["SAM"],tip:"Kobaltblau, der größte Ara; Pantanal an Palmen."},
+{id:"gelbbrustara",n:"Gelbbrustara",s:"Ara ararauna",o:"Papageien",fa:"Eigentliche Papageien",h:["Regenwald"],t:2,m:"🦜",r:["SAM"],tip:"Fliegt paarweise und schreiend über den Wald."},
+{id:"tukan",n:"Riesentukan",s:"Ramphastos toco",o:"Spechtvögel",fa:"Tukane",h:["Savanne","Regenwald"],t:2,m:"🦜",r:["SAM"],tip:"Der orange Riesenschnabel ist auf 200 Meter erkennbar."},
+{id:"felsenhahn",n:"Andenfelsenhahn",s:"Rupicola peruvianus",o:"Sperlingsvögel",fa:"Schmuckvögel",h:["Regenwald","Gebirge"],t:3,m:"🐦",r:["SAM"],tip:"Leuchtend orange Männchen an Balzplätzen im Nebelwald."},
+{id:"hoatzin",n:"Hoatzin",s:"Opisthocomus hoazin",o:"Hoatzinvögel",fa:"Hoatzine",h:["Süßwasser","Regenwald"],t:3,m:"🐦",r:["SAM"],tip:"Riecht nach Mist, fliegt miserabel; Küken haben Flügelkrallen."},
+{id:"magellanpinguin",n:"Magellanpinguin",s:"Spheniscus magellanicus",o:"Pinguine",fa:"Pinguine",h:["Küste & Meer"],t:2,m:"🐧",r:["SAM"],tip:"Brutkolonien in Patagonien von Oktober bis März."},
+{id:"blaufusstoelpel",n:"Blaufußtölpel",s:"Sula nebouxii",o:"Ruderfüßer",fa:"Tölpel",h:["Küste & Meer"],t:3,m:"🐦",r:["SAM","MAM"],tip:"Galápagos; der Balztanz mit den blauen Füßen ist echt."},
+{id:"meerechse",n:"Meerechse",s:"Amblyrhynchus cristatus",o:"Schuppenkriechtiere",fa:"Leguane",h:["Küste & Meer"],t:3,m:"🦎",r:["SAM"],tip:"Nur auf Galápagos; niest Salz aus den Nasendrüsen."},
+{id:"gruenerleguan",n:"Grüner Leguan",s:"Iguana iguana",o:"Schuppenkriechtiere",fa:"Leguane",h:["Regenwald","Süßwasser"],t:2,m:"🦎",r:["SAM","MAM"],tip:"Sonnt sich auf Ästen über dem Wasser und lässt sich hineinfallen."},
+{id:"galapagosschildkroete",n:"Galápagos-Riesenschildkröte",s:"Chelonoidis niger",o:"Schildkröten",fa:"Landschildkröten",h:["Trockengebiet"],t:3,m:"🐢",r:["SAM"],tip:"Im Hochland von Santa Cruz frei in den Weiden."},
+{id:"brillenkaiman",n:"Brillenkaiman",s:"Caiman crocodilus",o:"Krokodile",fa:"Alligatoren",h:["Süßwasser","Regenwald"],t:2,m:"🐊",r:["SAM","MAM"],tip:"Nachts leuchten die Augen rot im Taschenlampenstrahl."},
+{id:"anakonda",n:"Große Anakonda",s:"Eunectes murinus",o:"Schuppenkriechtiere",fa:"Boas",h:["Süßwasser","Regenwald"],t:3,m:"🐍",r:["SAM"],tip:"In den Llanos in flachen Tümpeln; schwerste Schlange der Welt."},
+{id:"pfeilgiftfrosch",n:"Erdbeerfröschchen",s:"Oophaga pumilio",o:"Froschlurche",fa:"Baumsteigerfrösche",h:["Regenwald"],t:2,m:"🐸",r:["MAM"],tip:"Daumennagelgroß und knallrot; ruft aus der Laubstreu."},
+{id:"morphofalter",n:"Blauer Morphofalter",s:"Morpho peleides",o:"Schmetterlinge",fa:"Edelfalter",h:["Regenwald"],t:2,m:"🦋",r:["MAM","SAM"],tip:"Blitzt beim Flug metallisch blau, im Sitzen unscheinbar braun."},
 
 /* --- Übrige Welt --- */
-{id:"afrelefant",n:"Afrikanischer Steppenelefant",s:"Loxodonta africana",o:"Rüsseltiere",fa:"Elefanten",h:["Savanne"],t:2,m:"🐘",tip:"Große Ohren in Afrikaform; Chobe und Etosha an Wasserstellen."},
-{id:"waldelefant",n:"Afrikanischer Waldelefant",s:"Loxodonta cyclotis",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald"],t:3,m:"🐘",tip:"Kleiner, rundere Ohren, gerade Stoßzähne; Kongobecken und Gabun."},
-{id:"asiaelefant",n:"Asiatischer Elefant",s:"Elephas maximus",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald","Offenland"],t:3,m:"🐘",tip:"Kleinere Ohren, gewölbter Rücken; wild etwa in Sri Lanka."},
-{id:"loewe",n:"Löwe",s:"Panthera leo",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:2,m:"🦁",tip:"Schläft 20 Stunden am Tag; Aktivität in der Dämmerung."},
-{id:"leopard",n:"Leopard",s:"Panthera pardus",o:"Raubtiere",fa:"Katzen",h:["Savanne","Wald"],t:3,m:"🐆",tip:"Rosetten ohne Mittelpunkt; sucht Bäume mit hängendem Schwanz ab."},
-{id:"gepard",n:"Gepard",s:"Acinonyx jubatus",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:3,m:"🐆",tip:"Tränenstreifen im Gesicht, jagt tagsüber auf offener Fläche."},
-{id:"tiger",n:"Tiger",s:"Panthera tigris",o:"Raubtiere",fa:"Katzen",h:["Wald","Regenwald"],t:3,m:"🐅",tip:"Warnrufe von Affen und Hirschen verraten ihn meist zuerst."},
-{id:"eisbaer",n:"Eisbär",s:"Ursus maritimus",o:"Raubtiere",fa:"Bären",h:["Polar & Tundra","Küste & Meer"],t:3,m:"🐻‍❄️",tip:"Svalbard oder Churchill; im Sommer an der Packeiskante."},
-{id:"giraffe",n:"Giraffe",s:"Giraffa camelopardalis",o:"Paarhufer",fa:"Giraffenartige",h:["Savanne"],t:2,m:"🦒",tip:"Die Fleckenmuster unterscheiden die Unterarten."},
-{id:"steppenzebra",n:"Steppenzebra",s:"Equus quagga",o:"Unpaarhufer",fa:"Pferde",h:["Savanne"],t:2,m:"🦓",tip:"Breite Streifen bis zum Bauch; das häufigste der drei Zebras."},
-{id:"flusspferd",n:"Flusspferd",s:"Hippopotamus amphibius",o:"Paarhufer",fa:"Flusspferde",h:["Süßwasser","Savanne"],t:2,m:"🦛",tip:"Tagsüber nur Ohren und Nasenlöcher; nachts an Land."},
-{id:"gnu",n:"Streifengnu",s:"Connochaetes taurinus",o:"Paarhufer",fa:"Hornträger",h:["Savanne"],t:2,m:"🐃",tip:"Die Massenwanderung in der Serengeti zwischen Juli und Oktober."},
-{id:"breitmaulnashorn",n:"Breitmaulnashorn",s:"Ceratotherium simum",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne"],t:3,m:"🦏",tip:"Breites Maul zum Grasen, in kleinen Gruppen."},
-{id:"spitzmaulnashorn",n:"Spitzmaulnashorn",s:"Diceros bicornis",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne","Trockengebiet"],t:3,m:"🦏",tip:"Spitze Greiflippe, Einzelgänger, deutlich seltener."},
-{id:"schimpanse",n:"Schimpanse",s:"Pan troglodytes",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",tip:"Kibale und Gombe; die Rufe hört man lange vor der Gruppe."},
-{id:"berggorilla",n:"Berggorilla",s:"Gorilla beringei beringei",o:"Primaten",fa:"Menschenaffen",h:["Regenwald","Gebirge"],t:3,m:"🦍",tip:"Nur mit Permit in Uganda, Ruanda oder der DR Kongo."},
-{id:"orangutan",n:"Borneo-Orang-Utan",s:"Pongo pygmaeus",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",tip:"Frische Schlafnester im Kronendach verraten die Nähe."},
-{id:"kaenguru",n:"Rotes Riesenkänguru",s:"Osphranter rufus",o:"Beuteltiere",fa:"Kängurus",h:["Trockengebiet","Offenland"],t:2,m:"🦘",tip:"Im australischen Outback in der Dämmerung an Straßen."},
-{id:"komodowaran",n:"Komodowaran",s:"Varanus komodoensis",o:"Schuppenkriechtiere",fa:"Warane",h:["Trockengebiet"],t:3,m:"🦎",tip:"Nur auf wenigen indonesischen Inseln, immer mit Ranger."},
-{id:"buckelwal",n:"Buckelwal",s:"Megaptera novaeangliae",o:"Wale",fa:"Furchenwale",h:["Küste & Meer"],t:3,m:"🐋",tip:"Lange weiße Brustflossen; springt häufiger als andere Großwale."},
-{id:"orca",n:"Orca",s:"Orcinus orca",o:"Wale",fa:"Delfine",h:["Küste & Meer","Polar & Tundra"],t:3,m:"🐋",tip:"Hohe Rückenfinne beim Bullen; Norwegen im Winter."},
-{id:"walhai",n:"Walhai",s:"Rhincodon typus",o:"Ammenhaiartige",fa:"Walhaie",h:["Küste & Meer"],t:3,m:"🐟",tip:"Größter Fisch der Welt, völlig harmlos; Planktonblüten folgen."},
-{id:"manta",n:"Riffmanta",s:"Mobula alfredi",o:"Rochen",fa:"Teufelsrochen",h:["Küste & Meer"],t:3,m:"🐠",tip:"An Putzerstationen kreisend, oft mehrere hintereinander."},
-{id:"gruenemeeresschildkroete",n:"Grüne Meeresschildkröte",s:"Chelonia mydas",o:"Schildkröten",fa:"Meeresschildkröten",h:["Küste & Meer"],t:2,m:"🐢",tip:"Weidet Seegras im Flachwasser; taucht zum Luftholen auf."}
+{id:"afrelefant",n:"Afrikanischer Steppenelefant",s:"Loxodonta africana",o:"Rüsseltiere",fa:"Elefanten",h:["Savanne"],t:2,m:"🐘",r:["AFR"],tip:"Große Ohren in Afrikaform; Chobe und Etosha an Wasserstellen."},
+{id:"waldelefant",n:"Afrikanischer Waldelefant",s:"Loxodonta cyclotis",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald"],t:3,m:"🐘",r:["AFR"],tip:"Kleiner, rundere Ohren, gerade Stoßzähne; Kongobecken und Gabun."},
+{id:"asiaelefant",n:"Asiatischer Elefant",s:"Elephas maximus",o:"Rüsseltiere",fa:"Elefanten",h:["Regenwald","Offenland"],t:3,m:"🐘",r:["SAS","SEA"],tip:"Kleinere Ohren, gewölbter Rücken; wild etwa in Sri Lanka."},
+{id:"loewe",n:"Löwe",s:"Panthera leo",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:2,m:"🦁",r:["AFR","SAS"],tip:"Schläft 20 Stunden am Tag; Aktivität in der Dämmerung."},
+{id:"leopard",n:"Leopard",s:"Panthera pardus",o:"Raubtiere",fa:"Katzen",h:["Savanne","Wald"],t:3,m:"🐆",r:["AFR","SAS","SEA","MEA"],tip:"Rosetten ohne Mittelpunkt; sucht Bäume mit hängendem Schwanz ab."},
+{id:"gepard",n:"Gepard",s:"Acinonyx jubatus",o:"Raubtiere",fa:"Katzen",h:["Savanne"],t:3,m:"🐆",r:["AFR","MEA"],tip:"Tränenstreifen im Gesicht, jagt tagsüber auf offener Fläche."},
+{id:"tiger",n:"Tiger",s:"Panthera tigris",o:"Raubtiere",fa:"Katzen",h:["Wald","Regenwald"],t:3,m:"🐅",r:["SAS","SEA","NAS"],tip:"Warnrufe von Affen und Hirschen verraten ihn meist zuerst."},
+{id:"eisbaer",n:"Eisbär",s:"Ursus maritimus",o:"Raubtiere",fa:"Bären",h:["Polar & Tundra","Küste & Meer"],t:3,m:"🐻‍❄️",r:["ARK"],tip:"Svalbard oder Churchill; im Sommer an der Packeiskante."},
+{id:"giraffe",n:"Giraffe",s:"Giraffa camelopardalis",o:"Paarhufer",fa:"Giraffenartige",h:["Savanne"],t:2,m:"🦒",r:["AFR"],tip:"Die Fleckenmuster unterscheiden die Unterarten."},
+{id:"steppenzebra",n:"Steppenzebra",s:"Equus quagga",o:"Unpaarhufer",fa:"Pferde",h:["Savanne"],t:2,m:"🦓",r:["AFR"],tip:"Breite Streifen bis zum Bauch; das häufigste der drei Zebras."},
+{id:"flusspferd",n:"Flusspferd",s:"Hippopotamus amphibius",o:"Paarhufer",fa:"Flusspferde",h:["Süßwasser","Savanne"],t:2,m:"🦛",r:["AFR"],tip:"Tagsüber nur Ohren und Nasenlöcher; nachts an Land."},
+{id:"gnu",n:"Streifengnu",s:"Connochaetes taurinus",o:"Paarhufer",fa:"Hornträger",h:["Savanne"],t:2,m:"🐃",r:["AFR"],tip:"Die Massenwanderung in der Serengeti zwischen Juli und Oktober."},
+{id:"breitmaulnashorn",n:"Breitmaulnashorn",s:"Ceratotherium simum",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne"],t:3,m:"🦏",r:["AFR"],tip:"Breites Maul zum Grasen, in kleinen Gruppen."},
+{id:"spitzmaulnashorn",n:"Spitzmaulnashorn",s:"Diceros bicornis",o:"Unpaarhufer",fa:"Nashörner",h:["Savanne","Trockengebiet"],t:3,m:"🦏",r:["AFR"],tip:"Spitze Greiflippe, Einzelgänger, deutlich seltener."},
+{id:"schimpanse",n:"Schimpanse",s:"Pan troglodytes",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",r:["AFR"],tip:"Kibale und Gombe; die Rufe hört man lange vor der Gruppe."},
+{id:"berggorilla",n:"Berggorilla",s:"Gorilla beringei beringei",o:"Primaten",fa:"Menschenaffen",h:["Regenwald","Gebirge"],t:3,m:"🦍",r:["AFR"],tip:"Nur mit Permit in Uganda, Ruanda oder der DR Kongo."},
+{id:"orangutan",n:"Borneo-Orang-Utan",s:"Pongo pygmaeus",o:"Primaten",fa:"Menschenaffen",h:["Regenwald"],t:3,m:"🦧",r:["SEA"],tip:"Frische Schlafnester im Kronendach verraten die Nähe."},
+{id:"kaenguru",n:"Rotes Riesenkänguru",s:"Osphranter rufus",o:"Beuteltiere",fa:"Kängurus",h:["Trockengebiet","Offenland"],t:2,m:"🦘",r:["AUS"],tip:"Im australischen Outback in der Dämmerung an Straßen."},
+{id:"komodowaran",n:"Komodowaran",s:"Varanus komodoensis",o:"Schuppenkriechtiere",fa:"Warane",h:["Trockengebiet"],t:3,m:"🦎",r:["SEA"],tip:"Nur auf wenigen indonesischen Inseln, immer mit Ranger."},
+{id:"buckelwal",n:"Buckelwal",s:"Megaptera novaeangliae",o:"Wale",fa:"Furchenwale",h:["Küste & Meer"],t:3,m:"🐋",r:["OZE","ARK","ANT"],tip:"Lange weiße Brustflossen; springt häufiger als andere Großwale."},
+{id:"orca",n:"Orca",s:"Orcinus orca",o:"Wale",fa:"Delfine",h:["Küste & Meer","Polar & Tundra"],t:3,m:"🐋",r:["OZE","ARK","ANT"],tip:"Hohe Rückenfinne beim Bullen; Norwegen im Winter."},
+{id:"walhai",n:"Walhai",s:"Rhincodon typus",o:"Ammenhaiartige",fa:"Walhaie",h:["Küste & Meer"],t:3,m:"🐟",r:["OZE"],tip:"Größter Fisch der Welt, völlig harmlos; Planktonblüten folgen."},
+{id:"manta",n:"Riffmanta",s:"Mobula alfredi",o:"Rochen",fa:"Teufelsrochen",h:["Küste & Meer"],t:3,m:"🐠",r:["OZE"],tip:"An Putzerstationen kreisend, oft mehrere hintereinander."},
+{id:"gruenemeeresschildkroete",n:"Grüne Meeresschildkröte",s:"Chelonia mydas",o:"Schildkröten",fa:"Meeresschildkröten",h:["Küste & Meer"],t:2,m:"🐢",r:["OZE"],tip:"Weidet Seegras im Flachwasser; taucht zum Luftholen auf."},
+/* --- Nachtrag: heimische Lücken --- */
+{id:"haussperling",n:"Haussperling",s:"Passer domesticus",o:"Sperlingsvögel",fa:"Sperlinge",h:["Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAF","NAM"],tip:"Der Spatz an der Bäckerei; Männchen mit schwarzem Latz."},
+{id:"feldsperling",n:"Feldsperling",s:"Passer montanus",o:"Sperlingsvögel",fa:"Sperlinge",h:["Offenland","Siedlung"],t:1,m:"🐦",r:["EU","NAS","SAS"],tip:"Brauner Scheitel und schwarzer Wangenfleck, Geschlechter gleich."},
+{id:"rabenkraehe",n:"Rabenkrähe",s:"Corvus corone",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Offenland","Siedlung"],t:1,m:"🪶",r:["EU"],tip:"Ganz schwarz; westlich der Elbe die Regel."},
+{id:"nebelkraehe",n:"Nebelkrähe",s:"Corvus cornix",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Offenland","Siedlung"],t:2,m:"🪶",r:["EU","MEA"],tip:"Grauer Rumpf; östlich der Elbe, Mischlinge in der Übergangszone."},
+{id:"dohle",n:"Dohle",s:"Coloeus monedula",o:"Sperlingsvögel",fa:"Rabenvögel",h:["Siedlung","Offenland"],t:1,m:"🪶",r:["EU","NAF","MEA"],tip:"Hellblaue Augen, grauer Nacken; brütet in Kirchtürmen."},
+{id:"feldlerche",n:"Feldlerche",s:"Alauda arvensis",o:"Sperlingsvögel",fa:"Lerchen",h:["Offenland"],t:2,m:"🐦",r:["EU","NAS","NAF"],tip:"Singt minutenlang im Rüttelflug — meist hört man sie, ohne sie zu finden."},
+{id:"buchfink",n:"Buchfink",s:"Fringilla coelebs",o:"Sperlingsvögel",fa:"Finken",h:["Wald","Siedlung"],t:1,m:"🐦",r:["EU","NAF","MEA"],tip:"Der absteigende Schlag mit Schnörkel am Ende, ab März überall."},
+{id:"bachstelze",n:"Bachstelze",s:"Motacilla alba",o:"Sperlingsvögel",fa:"Stelzen",h:["Süßwasser","Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAF"],tip:"Wippt beim Laufen mit dem Schwanz, oft auf Parkplätzen."},
+{id:"hausrotschwanz",n:"Hausrotschwanz",s:"Phoenicurus ochruros",o:"Sperlingsvögel",fa:"Fliegenschnäpper",h:["Siedlung","Gebirge"],t:1,m:"🐦",r:["EU","NAF","SAS"],tip:"Singt vor Sonnenaufgang vom Dachfirst, knirschender Gesang."},
+{id:"ringeltaube",n:"Ringeltaube",s:"Columba palumbus",o:"Taubenvögel",fa:"Tauben",h:["Wald","Siedlung"],t:1,m:"🕊️",r:["EU","NAF","MEA"],tip:"Weißer Halsfleck, klatschender Abflug."},
+{id:"sperber",n:"Sperber",s:"Accipiter nisus",o:"Greifvögel",fa:"Habichtartige",h:["Wald","Siedlung"],t:2,m:"🦅",r:["EU","NAS","NAF"],tip:"Jagt im Tiefflug durch Gärten; kurze Rundflügel, langer Schwanz."},
+{id:"habicht",n:"Habicht",s:"Accipiter gentilis",o:"Greifvögel",fa:"Habichtartige",h:["Wald"],t:3,m:"🦅",r:["EU","NAS","NAM"],tip:"Deutlich größer als der Sperber, heller Überaugenstreif."},
+{id:"mauersegler",n:"Mauersegler",s:"Apus apus",o:"Seglervögel",fa:"Segler",h:["Siedlung"],t:1,m:"🐦",r:["EU","NAS","NAF","AFR"],tip:"Schrille Rufe über den Dächern von Mai bis Anfang August."},
+{id:"blaesshuhn",n:"Blässhuhn",s:"Fulica atra",o:"Kranichvögel",fa:"Rallen",h:["Süßwasser"],t:1,m:"🦆",r:["EU","NAS","NAF","AUS"],tip:"Weißes Stirnschild, streitlustig; taucht statt zu gründeln."},
+{id:"silbermoewe",n:"Silbermöwe",s:"Larus argentatus",o:"Regenpfeiferartige",fa:"Möwen",h:["Küste & Meer","Siedlung"],t:1,m:"🕊️",r:["EU","NAM","ARK"],tip:"Roter Fleck am Unterschnabel; brütet auch auf Dächern."},
+{id:"austernfischer",n:"Austernfischer",s:"Haematopus ostralegus",o:"Regenpfeiferartige",fa:"Austernfischer",h:["Küste & Meer"],t:2,m:"🕊️",r:["EU","NAF","NAS"],tip:"Schwarzweiß mit knallorangem Schnabel, laut trillernd."},
+{id:"kiebitz",n:"Kiebitz",s:"Vanellus vanellus",o:"Regenpfeiferartige",fa:"Regenpfeifer",h:["Offenland","Süßwasser"],t:2,m:"🕊️",r:["EU","NAS"],tip:"Federschopf und taumelnder Balzflug über feuchten Wiesen."},
+{id:"murmeltier",n:"Alpenmurmeltier",s:"Marmota marmota",o:"Nagetiere",fa:"Hörnchen",h:["Gebirge"],t:2,m:"🐹",r:["EU"],tip:"Der schrille Warnpfiff kommt lange vor dem Tier."},
+{id:"kammmolch",n:"Kammmolch",s:"Triturus cristatus",o:"Schwanzlurche",fa:"Echte Salamander",h:["Süßwasser"],t:3,m:"🦎",r:["EU","NAS"],tip:"Männchen im Frühjahr mit hohem Rückenkamm; orange Bauch mit schwarzen Flecken."},
+{id:"bergmolch",n:"Bergmolch",s:"Ichthyosaura alpestris",o:"Schwanzlurche",fa:"Echte Salamander",h:["Süßwasser","Wald"],t:2,m:"🦎",r:["EU"],tip:"Ungefleckter orangeroter Bauch; auch in kleinsten Waldtümpeln."},
+{id:"teichmolch",n:"Teichmolch",s:"Lissotriton vulgaris",o:"Schwanzlurche",fa:"Echte Salamander",h:["Süßwasser"],t:2,m:"🦎",r:["EU","NAS"],tip:"Der häufigste Molch; Männchen mit gewelltem Saum und Streifen am Kopf."},
+{id:"waldeidechse",n:"Waldeidechse",s:"Zootoca vivipara",o:"Schuppenkriechtiere",fa:"Echte Eidechsen",h:["Wald","Gebirge"],t:2,m:"🦎",r:["EU","NAS"],tip:"Kleiner und brauner als die Zauneidechse; bringt lebende Junge zur Welt."},
+{id:"mauereidechse",n:"Mauereidechse",s:"Podarcis muralis",o:"Schuppenkriechtiere",fa:"Echte Eidechsen",h:["Siedlung","Trockengebiet"],t:2,m:"🦎",r:["EU"],tip:"Flach und flink an Weinbergsmauern und Bahnanlagen."},
+{id:"aeskulapnatter",n:"Äskulapnatter",s:"Zamenis longissimus",o:"Schuppenkriechtiere",fa:"Nattern",h:["Wald","Trockengebiet"],t:3,m:"🐍",r:["EU","MEA"],tip:"Bis 2 m, glänzend und kletterfreudig; in Deutschland nur wenige Vorkommen."},
+{id:"schlingnatter",n:"Schlingnatter",s:"Coronella austriaca",o:"Schuppenkriechtiere",fa:"Nattern",h:["Trockengebiet","Offenland"],t:3,m:"🐍",r:["EU","MEA"],tip:"Wird oft für die Kreuzotter gehalten; dunkler Augenstreif, runde Pupille."},
+{id:"wuerfelnatter",n:"Würfelnatter",s:"Natrix tessellata",o:"Schuppenkriechtiere",fa:"Nattern",h:["Süßwasser"],t:3,m:"🐍",r:["EU","MEA","SAS"],tip:"Taucht nach Fischen; an Mosel, Lahn und Nahe."},
+{id:"schachbrett",n:"Schachbrett",s:"Melanargia galathea",o:"Schmetterlinge",fa:"Edelfalter",h:["Offenland"],t:2,m:"🦋",r:["EU","NAF","MEA"],tip:"Schwarzweißes Muster, Juli auf Magerwiesen."},
+{id:"distelfalter",n:"Distelfalter",s:"Vanessa cardui",o:"Schmetterlinge",fa:"Edelfalter",h:["Offenland","Siedlung"],t:1,m:"🦋",r:["EU","NAF","AFR","SAS","NAM","AUS"],tip:"Wandert jedes Jahr aus Afrika ein — der weiteste Falterzug der Welt."},
+{id:"admiral",n:"Admiral",s:"Vanessa atalanta",o:"Schmetterlinge",fa:"Edelfalter",h:["Siedlung","Wald"],t:1,m:"🦋",r:["EU","NAF","NAM"],tip:"Rote Binde auf schwarzem Grund; im Herbst an Fallobst."},
+{id:"zitronenfalter",n:"Zitronenfalter",s:"Gonepteryx rhamni",o:"Schmetterlinge",fa:"Weißlinge",h:["Wald","Offenland"],t:1,m:"🦋",r:["EU","NAF","SAS"],tip:"Überwintert als Falter im Freien; oft der erste Schmetterling im Jahr."},
+{id:"plattbauch",n:"Plattbauch",s:"Libellula depressa",o:"Libellen",fa:"Segellibellen",h:["Süßwasser"],t:1,m:"🪰",r:["EU","MEA"],tip:"Breiter, hellblau bereifter Hinterleib beim Männchen; besiedelt neue Teiche zuerst."},
+{id:"mosaikjungfer",n:"Blaugrüne Mosaikjungfer",s:"Aeshna cyanea",o:"Libellen",fa:"Edellibellen",h:["Süßwasser","Wald"],t:2,m:"🪰",r:["EU","MEA"],tip:"Patrouilliert bis in den Oktober, auch über Waldwegen fern vom Wasser."},
+{id:"prachtlibelle",n:"Gebänderte Prachtlibelle",s:"Calopteryx splendens",o:"Libellen",fa:"Prachtlibellen",h:["Süßwasser"],t:2,m:"🪰",r:["EU","MEA"],tip:"Flattert wie ein Schmetterling; blaue Flügelbinde beim Männchen."},
+
+/* --- Nachtrag: Welt --- */
+{id:"tuemmler",n:"Großer Tümmler",s:"Tursiops truncatus",o:"Wale",fa:"Delfine",h:["Küste & Meer"],t:2,m:"🐬",r:["OZE","EU","NAM","SAM","AFR","SEA","AUS"],tip:"Der klassische Delfin; in Küstennähe oft in Gruppen am Bug."},
+{id:"lederschildkroete",n:"Lederschildkröte",s:"Dermochelys coriacea",o:"Schildkröten",fa:"Lederschildkröten",h:["Küste & Meer"],t:3,m:"🐢",r:["OZE"],tip:"Größte Schildkröte der Welt, bis 700 kg; kein Panzer, sondern Lederhaut."},
+{id:"braunpelikan",n:"Braunpelikan",s:"Pelecanus occidentalis",o:"Ruderfüßer",fa:"Pelikane",h:["Küste & Meer"],t:2,m:"🕊️",r:["NAM","MAM","SAM"],tip:"Stürzt aus der Luft ins Wasser — der einzige Pelikan, der das tut."},
+{id:"rosapelikan",n:"Rosapelikan",s:"Pelecanus onocrotalus",o:"Ruderfüßer",fa:"Pelikane",h:["Süßwasser","Küste & Meer"],t:2,m:"🕊️",r:["AFR","EU","SAS"],tip:"Fischt gemeinschaftlich im Halbkreis; Kolonien an ostafrikanischen Seen."},
+{id:"humboldtpinguin",n:"Humboldtpinguin",s:"Spheniscus humboldti",o:"Pinguine",fa:"Pinguine",h:["Küste & Meer"],t:3,m:"🐧",r:["SAM"],tip:"Nur an der kalten Humboldtströmung vor Peru und Chile."},
+{id:"galapagosseeloewe",n:"Galápagos-Seelöwe",s:"Zalophus wollebaeki",o:"Raubtiere",fa:"Ohrenrobben",h:["Küste & Meer"],t:3,m:"🦭",r:["SAM"],tip:"Liegt auf Stegen und Parkbänken; völlig ohne Scheu."},
+{id:"kaninchenkauz",n:"Kaninchenkauz",s:"Athene cunicularia",o:"Eulen",fa:"Eigentliche Eulen",h:["Offenland","Savanne"],t:2,m:"🦉",r:["NAM","MAM","SAM"],tip:"Tagaktiv und am Boden vor Erdhöhlen stehend — untypisch für eine Eule."},
+{id:"wegebussard",n:"Wegebussard",s:"Rupornis magnirostris",o:"Greifvögel",fa:"Habichtartige",h:["Regenwald","Savanne"],t:1,m:"🦅",r:["MAM","SAM"],tip:"Der häufigste Greif Lateinamerikas; sitzt an jeder Straße."},
+{id:"schlangenhalsvogel",n:"Amerikanischer Schlangenhalsvogel",s:"Anhinga anhinga",o:"Ruderfüßer",fa:"Schlangenhalsvögel",h:["Süßwasser"],t:2,m:"🕊️",r:["NAM","MAM","SAM"],tip:"Schwimmt mit nur sichtbarem Hals; trocknet Flügel wie ein Kormoran."},
+{id:"jabiru",n:"Jabiru",s:"Jabiru mycteria",o:"Schreitvögel",fa:"Störche",h:["Süßwasser","Savanne"],t:2,m:"🕊️",r:["MAM","SAM"],tip:"Riesenstorch mit rotem Halsband; das Wahrzeichen des Pantanal."},
+{id:"hundskopfboa",n:"Grüner Hundskopfboa",s:"Corallus caninus",o:"Schuppenkriechtiere",fa:"Boas",h:["Regenwald"],t:3,m:"🐍",r:["SAM"],tip:"Liegt tagsüber in Spiralen über einem Ast; nachtaktiv."},
+{id:"boaconstrictor",n:"Abgottschlange",s:"Boa constrictor",o:"Schuppenkriechtiere",fa:"Boas",h:["Regenwald","Trockengebiet"],t:3,m:"🐍",r:["MAM","SAM"],tip:"Die klassische Boa; in Waldrandnähe und an Gebäuden."},
+{id:"koenigspython",n:"Königspython",s:"Python regius",o:"Schuppenkriechtiere",fa:"Pythons",h:["Savanne"],t:3,m:"🐍",r:["AFR"],tip:"Rollt sich bei Gefahr zur Kugel; westafrikanische Savannen."},
+{id:"klapperschlange",n:"Klapperschlange",s:"Crotalus spec.",o:"Schuppenkriechtiere",fa:"Vipern",h:["Trockengebiet"],t:3,m:"🐍",g:1,r:["NAM","MAM"],tip:"Gruppe: über 30 Arten, im Feld selten sicher zu trennen — das Rasseln ist eindeutig."},
+{id:"gruenemamba",n:"Grüne Mamba",s:"Dendroaspis spec.",o:"Schuppenkriechtiere",fa:"Giftnattern",h:["Regenwald"],t:3,m:"🐍",g:1,r:["AFR"],tip:"Gruppe: mehrere Arten; baumbewohnend und extrem schwer zu entdecken."},
+{id:"seeschlange",n:"Seeschlange",s:"Hydrophiinae",o:"Schuppenkriechtiere",fa:"Giftnattern",h:["Küste & Meer"],t:3,m:"🐍",g:1,r:["OZE","SEA","AUS"],tip:"Gruppe: ruderförmiger Schwanz; beim Tauchen im Indopazifik ein Glücksfund."},
+{id:"kolibri",n:"Kolibri",s:"Trochilidae",o:"Seglervögel",fa:"Kolibris",h:["Regenwald","Gebirge","Siedlung"],t:1,m:"🐦",g:1,r:["NAM","MAM","SAM"],tip:"Gruppe: über 350 Arten, im Flug kaum trennbar — als Gruppe unverwechselbar."},
+{id:"vogelspinne",n:"Vogelspinne",s:"Theraphosidae",o:"Webspinnen",fa:"Vogelspinnen",h:["Regenwald","Trockengebiet"],t:2,m:"🕷️",g:1,r:["SAM","MAM","SEA","AFR"],tip:"Gruppe: nachts vor der Wohnröhre; Bestimmung nur mit Fachliteratur."},
+{id:"stabschrecke",n:"Stabschrecke",s:"Phasmatodea",o:"Gespenstschrecken",fa:"Gespenstschrecken",h:["Regenwald","Wald"],t:2,m:"🦗",g:1,r:["SAM","SEA","AUS","AFR"],tip:"Gruppe: Zweignachahmer; man findet sie fast nur zufällig beim Absuchen."},
+{id:"riesentausendfuesser",n:"Riesentausendfüßer",s:"Spirostreptida",o:"Doppelfüßer",fa:"Riesentausendfüßer",h:["Regenwald"],t:2,m:"🐛",g:1,r:["SAM","AFR","SEA"],tip:"Gruppe: handlang, rollt sich ein; nach Regen auf Waldwegen."},
+{id:"passionsfalter",n:"Passionsblumenfalter",s:"Heliconius spec.",o:"Schmetterlinge",fa:"Edelfalter",h:["Regenwald"],t:1,m:"🦋",g:1,r:["MAM","SAM"],tip:"Gruppe: langflügelig, langsam gaukelnd; die Arten ahmen einander nach."},
+{id:"stirnvogel",n:"Stirnvogel",s:"Psarocolius spec.",o:"Sperlingsvögel",fa:"Stärlinge",h:["Regenwald"],t:2,m:"🐦",g:1,r:["MAM","SAM"],tip:"Gruppe: die langen Hängenester in Kolonien sind das Erkennungsmerkmal."},
+{id:"blattschneiderameise",n:"Blattschneiderameise",s:"Atta spec.",o:"Hautflügler",fa:"Ameisen",h:["Regenwald","Savanne"],t:1,m:"🐜",g:1,r:["MAM","SAM"],tip:"Gruppe: die grünen Blattstücke auf der Ameisenstraße sieht man kilometerweit."},
+{id:"ameise24",n:"24-Stunden-Ameise",s:"Paraponera clavata",o:"Hautflügler",fa:"Ameisen",h:["Regenwald"],t:2,m:"🐜",r:["MAM","SAM"],tip:"Daumennagelgroß, an Baumstämmen; der schmerzhafteste Stich der Insektenwelt."}
 ];
 
 /* ====== Speicher ====== */
 const KEY="feldbuch.v1";
-let memOnly=false, state={name:"",flair:"",view:"kachel",fs:1,d:{}};
+let memOnly=false, state={name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}};
 function load(){try{const r=localStorage.getItem(KEY);if(r)state=Object.assign(state,JSON.parse(r));}catch(e){memOnly=true;}}
 function save(){if(memOnly)return;try{localStorage.setItem(KEY,JSON.stringify(state));}
   catch(e){memOnly=true;toast("Speicher voll. Exportiere deine Daten und entferne ein paar Fotos.");}}
@@ -396,16 +483,22 @@ function toast(m){const t=document.getElementById("toast");t.textContent=m;t.cla
   clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("on"),2800);}
 
 /* ====== Ableitungen ====== */
-const METH=["Sichtung","Ruf","Spur","Losung","Totfund","Detektor"];
-const byId=i=>ARTEN.find(x=>x.id===i);
+const METH=["Sichtung","Ruf","Spur","Losung","Totfund","Detektor","Kamerafalle"];
+const DIREKT=["Sichtung","Ruf","Spur","Losung","Totfund"];
+const alle=()=>ARTEN.concat(state.custom||[]);
+const byId=i=>alle().find(x=>x.id===i);
+const istEigen=i=>(state.custom||[]).some(z=>z.id===i);
 const rec=i=>state.d[i]||null;
-const gesehen=()=>ARTEN.filter(x=>rec(x.id)&&rec(x.id).v);
+const gesehen=()=>alle().filter(x=>rec(x.id)&&rec(x.id).v);
 const photoCount=()=>Object.values(state.d).reduce((s,r)=>s+((r.photos||[]).length),0);
 const habCount=h=>gesehen().filter(x=>x.h.includes(h)).length;
 const methCount=m=>gesehen().filter(x=>(rec(x.id).meth||[]).includes(m)).length;
 const nurMeth=m=>gesehen().filter(x=>{const q=rec(x.id).meth||[];return q.length===1&&q[0]===m}).length;
-const setOf=def=>ARTEN.filter(x=>def.ids?def.ids.includes(x.id):def.fam?x.fa===def.fam:def.ord?(Array.isArray(def.ord)?def.ord.includes(x.o):x.o===def.ord):false).map(x=>x.id);
-const xpArten=()=>gesehen().reduce((s,x)=>s+10*(x.t||1),0);
+const setOf=def=>alle().filter(x=>def.ids?def.ids.includes(x.id):
+  def.fams?def.fams.includes(x.fa):
+  def.fam?x.fa===def.fam:
+  def.ord?(Array.isArray(def.ord)?def.ord.includes(x.o):x.o===def.ord):false).map(x=>x.id);
+const xpArten=()=>gesehen().reduce((s,x)=>s+10*(istEigen(x.id)?1:(x.t||1)),0);
 const xpOrden=()=>15*achs().filter(a=>a.ok).length;
 const xp=()=>xpArten()+xpOrden();
 const STUFE=80;
@@ -465,15 +558,15 @@ const ADEF=[
 {id:"greife",name:"Greifvögel",cat:"Systematik",ic:"🦅",ord:["Greifvögel","Falken"],d:n=>n+" Arten aus Greifvögeln und Falken",
  tiers:[{n:3,t:"Blick nach oben"},{n:7,t:"Greifvogelkenner",fl:"Falkner:in"}]},
 {id:"eulen",name:"Eulen",cat:"Systematik",ic:"🦉",ord:"Eulen",d:n=>n+" Eulenarten",
- tiers:[{n:1,t:"Nachtgesang"},{n:2,t:"Waldkauz und Uhu",fl:"Eulenfreund:in"}]},
+ tiers:[{n:1,t:"Nachtgesang"},{n:3,t:"Alle Eulen im Dex",fl:"Eulenfreund:in"}]},
 {id:"raben",name:"Rabenvögel",cat:"Systematik",ic:"🖤",fam:"Rabenvögel",d:n=>n+" Arten aus der Familie der Rabenvögel",
- tiers:[{n:2,t:"Schwarzes Gefieder"},{n:4,t:"Alle Rabenvögel",fl:"Rabenvater"}]},
+ tiers:[{n:3,t:"Schwarzes Gefieder"},{n:7,t:"Alle Rabenvögel",fl:"Rabenvater"}]},
 {id:"elefanten",name:"Elefanten",cat:"Systematik",ic:"🐘",fam:"Elefanten",d:n=>n+" der drei Elefantenarten",
  tiers:[{n:1,t:"Rüsseltier"},{n:3,t:"Alle drei Elefanten",fl:"Elefantenkenner:in"}]},
 {id:"wale",name:"Wale",cat:"Systematik",ic:"🐋",ord:"Wale",d:n=>n+" Walarten",
- tiers:[{n:1,t:"Blas gesichtet"},{n:4,t:"Alle Wale im Dex",fl:"Walfahrer:in"}]},
-{id:"robben",name:"Robben",cat:"Systematik",ic:"🦭",ids:["seehund","kegelrobbe","maehnenrobbe"],d:n=>n+" Robbenarten",
- tiers:[{n:2,t:"Sandbankgäste"},{n:3,t:"Alle Robben",fl:"Robbenzähler:in"}]},
+ tiers:[{n:2,t:"Blas gesichtet"},{n:5,t:"Alle Wale im Dex",fl:"Walfahrer:in"}]},
+{id:"robben",name:"Robben",cat:"Systematik",ic:"🦭",ids:["seehund","kegelrobbe","maehnenrobbe","galapagosseeloewe"],d:n=>n+" Robbenarten",
+ tiers:[{n:2,t:"Sandbankgäste"},{n:4,t:"Alle Robben",fl:"Robbenzähler:in"}]},
 {id:"hirsche",name:"Hirsche",cat:"Systematik",ic:"🦌",fam:"Hirsche",d:n=>n+" heimische Hirscharten",
  tiers:[{n:2,t:"Geweihträger"},{n:3,t:"Reh, Rot- und Damhirsch",fl:"Waidmann"}]},
 {id:"lurche",name:"Amphibien",cat:"Systematik",ic:"🐸",ord:["Froschlurche","Schwanzlurche"],d:n=>n+" Amphibienarten",
@@ -481,6 +574,17 @@ const ADEF=[
 {id:"kriechtiere",name:"Reptilien",cat:"Systematik",ic:"🦎",ord:["Schuppenkriechtiere","Schildkröten","Krokodile"],d:n=>n+" Reptilienarten",
  tiers:[{n:3,t:"Sonnenanbeter"},{n:8,t:"Herpetologe",fl:"Herpetolog:in"}]},
 
+{id:"schlangen",name:"Schlangen",cat:"Systematik",ic:"🐍",fams:["Nattern","Vipern","Boas","Pythons","Giftnattern"],d:n=>n+" Schlangenarten",
+ tiers:[{n:2,t:"Erste Begegnung"},{n:5,t:"Schlangenfreund",fl:"Schlangenfreund:in"},{n:9,t:"Schlangenkenner",fl:"Herpetophile:r"}]},
+{id:"falter",name:"Schmetterlinge",cat:"Systematik",ic:"🦋",ord:"Schmetterlinge",d:n=>n+" Schmetterlingsarten",
+ tiers:[{n:4,t:"Falterzeit"},{n:8,t:"Schmetterlingskenner",fl:"Falterfreund:in"}]},
+{id:"libellen",name:"Libellen",cat:"Systematik",ic:"🪰",ord:"Libellen",d:n=>n+" Libellenarten",
+ tiers:[{n:2,t:"Am Teich"},{n:4,t:"Alle Libellen im Dex",fl:"Libellenkenner:in"}]},
+{id:"direkt",name:"Unmittelbar erlebt",cat:"Nachweis",ic:"👁️",d:n=>n+" Arten ohne Technik nachgewiesen",
+ f:()=>gesehen().filter(x=>(rec(x.id).meth||[]).some(m=>DIREKT.includes(m))).length,
+ tiers:[{n:25,t:"Aus eigener Anschauung"},{n:60,t:"Alles selbst gesehen",fl:"Augenzeuge:in"}]},
+{id:"falle",name:"Kamerafalle",cat:"Nachweis",ic:"📷",d:n=>n+" Arten mit der Kamerafalle",f:()=>methCount("Kamerafalle"),
+ tiers:[{n:1,t:"Auslöser"},{n:5,t:"Fallensteller",fl:"Fallensteller:in"}]},
 {id:"tag",name:"Großer Tag",cat:"Erleben",ic:"🌅",d:n=>n+" Arten am selben Tag erstmals notiert",f:()=>groessterTag(),
  tiers:[{n:5,t:"Guter Tag"},{n:10,t:"Großer Tag",fl:"Tagesjäger:in"}]},
 {id:"wieder",name:"Wiederbegegnungen",cat:"Erleben",ic:"🔁",d:n=>"Eine Art "+n+"× notiert",f:()=>Math.max(0,...gesehen().map(x=>rec(x.id).count||1)),
@@ -510,7 +614,7 @@ let tab="dex", filter="all", hFilter="", q="", justStamped=null, aFilter="all", 
 function renderKopf(){
   const v=gesehen().length,p=xp(),lvl=1+Math.floor(p/STUFE),prog=p%STUFE;
   document.getElementById("lvlOut").textContent=lvl;
-  document.getElementById("cntOut").innerHTML=v+"<small>/"+ARTEN.length+"</small>";
+  document.getElementById("cntOut").innerHTML=v+"<small>/"+alle().length+"</small>";
   document.getElementById("xpFill").style.width=(prog/STUFE*100)+"%";
   document.getElementById("flairOut").textContent=state.flair||"";
   const nm=(state.name||"Beobachter:in").toUpperCase().replace(/[^A-Z0-9ÄÖÜ ]/g,"").replace(/ /g,"<");
@@ -526,16 +630,27 @@ function renderDex(){
   if(!hf.dataset.done){
     hf.innerHTML='<button class="chip" data-h="" aria-pressed="true">Alle</button>'+
       HAB.map(h=>`<button class="chip" data-h="${h}" aria-pressed="false">${h}</button>`).join("");
+    document.getElementById("sortFilters").innerHTML='<span style="font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-right:2px">Sortieren</span>'+
+      [["name","Name"],["selten","Seltenheit"],["syst","Systematik"],["neu","Zuletzt"]]
+      .map(o=>`<button class="chip" data-s="${o[0]}" aria-pressed="${(state.sort||"name")===o[0]}">${o[1]}</button>`).join("");
     hf.dataset.done=1;
   }
-  const list=ARTEN.filter(x=>{
+  const list=alle().filter(x=>{
     const r=rec(x.id);
     if(filter==="seen"&&!(r&&r.v))return false;
     if(filter==="open"&&(r&&r.v))return false;
     if(hFilter&&!x.h.includes(hFilter))return false;
     if(q&&!(x.n.toLowerCase().includes(q)||x.s.toLowerCase().includes(q)||x.fa.toLowerCase().includes(q)||x.o.toLowerCase().includes(q)))return false;
     return true;
-  }).sort((a,b)=>a.n.localeCompare(b.n,"de"));
+  });
+  const nm=(a,b)=>a.n.localeCompare(b.n,"de");
+  const so=state.sort||"name";
+  if(so==="selten") list.sort((a,b)=>(b.t||1)-(a.t||1)||nm(a,b));
+  else if(so==="syst") list.sort((a,b)=>a.o.localeCompare(b.o,"de")||a.fa.localeCompare(b.fa,"de")||nm(a,b));
+  else if(so==="neu") list.sort((a,b)=>{
+    const ad=(rec(a.id)&&rec(a.id).first)||"",bd=(rec(b.id)&&rec(b.id).first)||"";
+    return bd.localeCompare(ad)||nm(a,b);});
+  else list.sort(nm);
   g.innerHTML="";
   if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">Keine Art gefunden.</div>';justStamped=null;return;}
   list.forEach(x=>{
@@ -544,7 +659,7 @@ function renderDex(){
     b.className="card"+(on?"":" un")+(x.t===3?" tier3":"")+(justStamped===x.id?" stamped":"");
     b.dataset.id=x.id;
     b.innerHTML=`<div><div class="mot">${x.m}</div><div class="nm">${x.n}</div><div class="sci">${x.s}</div></div>
-      <div class="meta">${on?((r.meth||[]).join(", ")||"notiert"):(x.t===3?"legendär":x.t===2?"selten":"häufig")}</div>
+      <div class="meta">${on?((r.meth||[]).join(", ")||"notiert"):((x.g?"Gruppe · ":"")+(x.t===3?"legendär":x.t===2?"selten":"häufig"))}</div>
       ${on?`<div class="mini">✓</div>`:""}`;
     g.appendChild(b);
   });
@@ -658,11 +773,15 @@ function openSheet(id){
       <div><h2>${x.n}</h2><div class="sci">${x.s}</div></div>
       <button class="close" data-act="close" aria-label="Schließen">✕</button></div>
     <div class="sec"><h3>Steckbrief</h3><div class="facts">
-      <div><div class="k">Ordnung</div><div class="v">${x.o}</div></div>
-      <div><div class="k">Familie</div><div class="v">${x.fa}</div></div>
-      <div><div class="k">Häufigkeit</div><div class="v">${tier}</div></div>
-      <div><div class="k">Lebensraum</div><div class="v">${x.h.join(", ")}</div></div>
-    </div><div class="hint">${x.tip}</div></div>
+      <div><div class="k">Ordnung</div><div class="v">${x.o||"—"}</div></div>
+      <div><div class="k">Familie</div><div class="v">${x.fa||"—"}</div></div>
+      <div><div class="k">Häufigkeit</div><div class="v">${tier}${x.g?" · Gruppe":""}</div></div>
+      <div><div class="k">Lebensraum</div><div class="v">${(x.h||[]).join(", ")||"—"}</div></div>
+    </div>
+    ${x.g?'<div class="hint" style="margin-top:9px"><b>Gruppeneintrag</b> — mehrere Arten, im Feld kaum sicher zu trennen. Die Häufigkeitsstufe richtet sich danach, wie schwer der Nachweis ist, nicht danach, wie fein die Einheit ist.</div>':""}
+    ${x.tip?`<div class="hint">${x.tip}</div>`:""}</div>
+    ${(x.r&&x.r.length)?`<div class="sec"><h3>Verbreitung</h3>${karte(x.r)}
+      <div class="hint">${x.r.map(k=>REGN[k]||k).join(" · ")}<br>Schematische Übersicht, keine exakte Verbreitungskarte.</div></div>`:""}
     <div class="sec">
       <button class="bigbtn${r.v?" on":""}" data-act="toggle">${r.v?"Notiert — Eintrag zurücknehmen":"Als beobachtet eintragen"}</button>
       <div class="hint">Zählt nur frei lebend. Tiere in Zoos, Gehegen und Aquarien gehören nicht ins Feldbuch.</div>
@@ -686,6 +805,17 @@ function openSheet(id){
       </div>
       <div class="hint">Mehrere Bilder auf einmal möglich; sie werden verkleinert und bleiben auf diesem Gerät.</div>
     </div>
+    ${istEigen(id)?`<div class="sec"><h3>Eigener Eintrag</h3><div class="frm">
+      <label class="wide"><span class="lb">Name</span><input data-c="n" value="${esc(x.n)}"></label>
+      <label class="wide"><span class="lb">Wissenschaftlicher Name</span><input data-c="s" value="${esc(x.s||"")}" placeholder="optional"></label>
+      <label><span class="lb">Ordnung</span><input data-c="o" value="${esc(x.o||"")}" placeholder="optional"></label>
+      <label><span class="lb">Familie</span><input data-c="fa" value="${esc(x.fa||"")}" placeholder="optional"></label>
+      <label><span class="lb">Motiv</span><input data-c="m" value="${x.m||""}" maxlength="4" placeholder="🐾"></label>
+      <label><span class="lb">Häufigkeit</span><select data-c="t">${[[1,"häufig"],[2,"selten"],[3,"legendär"]].map(o=>`<option value="${o[0]}"${x.t==o[0]?" selected":""}>${o[1]}</option>`).join("")}</select></label>
+      <div class="wide"><span class="lb">Lebensraum</span><div class="modes">${HAB.map(h=>`<button data-hab="${h}" class="${(x.h||[]).includes(h)?"on":""}">${h}</button>`).join("")}</div></div>
+    </div>
+    <div class="rowbtns"><button class="smallbtn danger" data-act="delart">Diesen Eintrag löschen</button></div>
+    <div class="hint">Eigene Einträge zählen immer als häufig, unabhängig von der eingestellten Stufe.</div></div>`:""}
     <div class="sec" style="border:0;text-align:right"><button class="smallbtn" data-act="close">Schließen</button></div>
   </div></div>`;
   document.body.style.overflow="hidden"; bindSheet();
@@ -716,6 +846,14 @@ function bindSheet(){
     const r=ensure(openId);
     const vor=ordenStand(); setTimeout(()=>ordenPruefen(vor),0);
     if(b.dataset.act==="close"){closeSheet();return;}
+    if(b.dataset.act==="delart"){
+      if(!confirm("„"+byId(openId).n+"“ mit allen Einträgen löschen?"))return;
+      state.custom=(state.custom||[]).filter(z=>z.id!==openId); delete state.d[openId]; save();
+      document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";openId=null;render();toast("Eintrag gelöscht.");return;}
+    if(b.dataset.hab){
+      const o=(state.custom||[]).find(z=>z.id===openId); if(!o)return;
+      o.h=o.h||[]; const i=o.h.indexOf(b.dataset.hab); i>-1?o.h.splice(i,1):o.h.push(b.dataset.hab);
+      save();openSheet(openId);return;}
     if(b.dataset.act==="toggle"){
       r.v=r.v?0:1;
       if(r.v){if(!r.first)r.first=new Date().toISOString().slice(0,10);
@@ -731,6 +869,9 @@ function bindSheet(){
   });
   const onEdit=e=>{
     const vor=ordenStand(); setTimeout(()=>ordenPruefen(vor),0);
+    const ck=e.target.dataset.c;
+    if(ck){const o=(state.custom||[]).find(z=>z.id===openId); if(!o)return;
+      o[ck]=ck==="t"?+e.target.value:(e.target.value.trim()||(ck==="m"?"🐾":o[ck]||""));save();return;}
     const k=e.target.dataset.k; if(!k)return;
     ensure(openId)[k]=e.target.value; save(); renderKopf();
   };
@@ -779,6 +920,16 @@ document.getElementById("habFilters").addEventListener("click",e=>{const b=e.tar
   hFilter=b.dataset.h;document.querySelectorAll("#habFilters [data-h]").forEach(z=>z.setAttribute("aria-pressed",z===b));renderDex();});
 document.querySelectorAll('.filters [data-f]').forEach(b=>b.addEventListener("click",()=>{
   filter=b.dataset.f;document.querySelectorAll('.filters [data-f]').forEach(z=>z.setAttribute("aria-pressed",z===b));renderDex();}));
+document.getElementById("sortFilters").addEventListener("click",e=>{
+  const b=e.target.closest("[data-s]"); if(!b)return; state.sort=b.dataset.s; save();
+  document.querySelectorAll("#sortFilters [data-s]").forEach(z=>z.setAttribute("aria-pressed",z===b)); renderDex();});
+document.getElementById("addArt").addEventListener("click",()=>{
+  const n=(prompt("Name der Art?")||"").trim(); if(!n)return;
+  const base="x"+n.toLowerCase().replace(/[^a-zäöüß]/g,"").slice(0,10);
+  let id=base,i=1; while(byId(id)){id=base+i;i++;}
+  state.custom=state.custom||[];
+  state.custom.push({id,n,s:"",o:"",fa:"",h:[],t:1,m:"🐾",r:[],tip:"",eigen:1});
+  save(); renderDex(); openSheet(id);});
 document.getElementById("viewToggle").addEventListener("click",()=>{
   state.view=state.view==="liste"?"kachel":"liste";save();renderDex();});
 document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();renderDex();});
@@ -795,13 +946,13 @@ document.getElementById("impBtn").addEventListener("click",()=>document.getEleme
 document.getElementById("impFile").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;const fr=new FileReader();
   fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o||typeof o!=="object"||!o.d)throw 0;
-    state=Object.assign({name:"",flair:"",view:"kachel",fs:1,d:{}},o);save();
+    state=Object.assign({name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}},o);save();
     document.getElementById("nameIn").value=state.name||"";schrift();render();toast("Daten geladen.");}
     catch(err){toast("Datei passt nicht. Bitte eine Export-Datei wählen.");}};
   fr.readAsText(f);e.target.value="";});
 document.getElementById("resetBtn").addEventListener("click",()=>{
   if(!confirm("Alle Einträge, Notizen und Fotos löschen? Das lässt sich nicht rückgängig machen."))return;
-  state={name:"",flair:"",view:"kachel",fs:1,d:{}};save();document.getElementById("nameIn").value="";render();toast("Alles gelöscht.");});
+  state={name:"",flair:"",view:"kachel",sort:"name",fs:1,custom:[],d:{}};save();document.getElementById("nameIn").value="";render();toast("Alles gelöscht.");});
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(openId){closeSheet();return;}
   if(document.getElementById("sheet")){document.getElementById("sheetHost").innerHTML="";document.body.style.overflow="";}});
